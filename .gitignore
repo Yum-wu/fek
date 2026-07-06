@@ -19,3 +19,6 @@ FEK.MD
 .idea/
 .vscode/
 *.swp
+
+# 验证截图（非项目产物，勿提交）
+fek_github_verify.png
