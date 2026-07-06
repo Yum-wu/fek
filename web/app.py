@@ -69,7 +69,7 @@ def _pipeline_html(result) -> str:
 
 def show_pipeline(result):
     st.subheader("执行流水线")
-    st.markdown(_pipeline_html(result), unsafe_allow_html=True)
+    st.html(_pipeline_html(result))
 
 
 def _check_graphviz_binary() -> bool:
@@ -94,6 +94,9 @@ def show_graph(result, kernel: FEKKernel):
     graph = GraphBuilder().build(result.strategy, task)
 
     node_count = len(graph.nodes)
+    if node_count == 0:
+        st.caption("⚠️ 执行图为空（无节点），跳过渲染")
+        return
 
     # ── 策略 1：graphviz（需 Python 包 + 系统(dot) 二进制都在）──
     if _check_graphviz_binary():
@@ -117,70 +120,110 @@ def show_graph(result, kernel: FEKKernel):
         except Exception:
             pass
 
-    # ── 策略 2：Streamlit 原生 Mermaid（零依赖，官方支持）──
-    mermaid_src = graph.to_mermaid()
-    try:
-        st.markdown(f"```mermaid\n{mermaid_src}\n```")
-        return
-    except Exception:
-        pass
-
-    # ── 策略 3：Flexbox 可视化（100% 可靠兜底）──
-    st.markdown(_flex_dag(graph, result.strategy), unsafe_allow_html=True)
-
-
-def _flex_dag(graph, strategy) -> str:
-    """Flexbox DAG 兜底 —— 对单节点和多节点都给出有信息量的可视化。"""
-    from fek.core.types import Strategy
-
-    parts = []
-    # 节点卡片
-    for nid, n in graph.nodes.items():
-        label = node_zh_label(n.role, n.kind)
-        parts.append(f'<div class="fd-node">{label}</div>')
-
-    # 连线箭头
-    if len(graph.nodes) > 1:
-        for nid, n in graph.nodes.items():
-            for dep in n.depends_on:
-                dep_label = node_zh_label(graph.nodes[dep].role, graph.nodes[dep].kind)
-                parts.append(
-                    f'<div class="fd-arrow">&#8594;</div>'
-                    f'<div class="fd-edge">{dep_label} &#8594; {node_zh_label(n.role, n.kind)}</div>'
-                )
+    # ── 策略 2：纯 HTML/CSS 可视化（零依赖，100% 可靠）──
+    st.html(_visual_dag(graph, result.strategy))
     else:
-        # 单节点时展示策略说明
-        strat_desc = {
-            Strategy.SINGLE: "单模型直接执行，无依赖节点",
-            Strategy.MULTI_AGENT: "多角色协作流水线",
-            Strategy.MOA: "并行多模型 + 融合",
-        }
-        desc = strat_desc.get(strategy, "执行图节点")
-        parts.append(
-            f'<div class="fd-info">'
-            f'<span class="fd-info-icon">&#9432;</span>'
-            f'{desc}'
-            f'</div>'
+        # 硬编码兜底——确认 st.html 在此上下文能渲染
+        st.html(
+            '<div style="background:#1e1b4b;border:2px solid #6366f1;border-radius:12px;'
+            'padding:24px;text-align:center;color:#c7d2fe;font-size:.92rem;font-weight:600;">'
+            f'{node_zh_label(list(graph.nodes.values())[0].role, list(graph.nodes.values())[0].kind)}'
+            '</div>'
         )
 
+
+def _visual_dag(graph, strategy) -> str:
+    """零依赖的纯 HTML/CSS DAG 可视化 —— 对单/多节点都给出漂亮的图形。"""
+    from fek.core.types import Strategy
+
+    nodes_list = list(graph.nodes.items())
+    n_count = len(nodes_list)
+
+    # ── 节点卡片 HTML ──
+    node_cards = []
+    for nid, n in nodes_list:
+        label = node_zh_label(n.role, n.kind)
+        node_cards.append(
+            f'<div class="vd-node" id="vd-{nid}">'
+            f'<div class="vd-node-icon">&#9881;</div>'
+            f'<div class="vd-node-label">{label}</div>'
+            f'<div class="vd-node-kind">{n.kind}</div>'
+            f"</div>"
+        )
+
+    # ── 连线（SVG 绝对定位在容器内）──
+    svg_lines = []
+    if n_count > 1:
+        for nid, n in nodes_list:
+            for dep in n.depends_on:
+                svg_lines.append(
+                    f'<line class="vd-edge" data-from="#vd-{dep}" data-to="#vd-{nid}"/>'
+                )
+
+    # ── 单节点时的说明文字 ──
+    info_html = ""
+    if n_count == 1:
+        strat_info = {
+            Strategy.SINGLE: ("单模型直接执行", "一个 LLM 调用完成全部任务"),
+            Strategy.MULTI_AGENT: ("多角色协作流水线", "规划 → 执行 → 批判 → 综合"),
+            Strategy.MOA: ("并行多模型融合", "多个模型并行推理 + 融合层综合"),
+        }
+        title, desc = strat_info.get(strategy, ("执行图", ""))
+        info_html = (
+            f'<div class="vd-info">'
+            f'<div class="vd-info-title">{title}</div>'
+            f'<div class="vd-info-desc">{desc}</div>'
+            f"</div>"
+        )
+        node_html = f'<div class="vd-single-center">{"".join(node_cards)}{info_html}</div>'
+    else:
+        node_html = '<div class="vd-multi-col">' + "".join(node_cards) + "</div>"
+
     return (
-        '<div class="fd-wrap">'
-        '<div class="fd-inner">'
-        + "\n".join(parts)
-        + "</div></div>"
-        "<style>"
-        ".fd-wrap{background:#0f1117;border:1px solid rgba(99,102,241,.25);"
-        " border-radius:12px;padding:20px;margin:8px 0;}"
-        ".fd-inner{display:flex;flex-direction:column;gap:10px;align-items:center;}"
-        ".fd-node{background:#1e1b4b;border:2px solid #6366f1;border-radius:10px;"
-        " color:#c7d2fe;padding:12px 24px;font-size:.92rem;font-weight:600;"
-        " white-space:nowrap;text-align:center;}"
-        ".fd-arrow{color:#6366f1;font-size:1.3rem;font-weight:bold;}"
-        ".fd-edge{color:#9ca3af;font-size:.8rem;text-align:center;}"
-        ".fd-info{display:flex;align-items:center;gap:6px;color:#9ca3af;"
-        " font-size:.82rem;margin-top:4px;padding:8px 16px;background:rgba(99,102,241,.08);"
-        " border-radius:8px;border:1px dashed rgba(99,102,241,.3);}"
-        ".fd-info-icon{color:#6366f1;font-size:1rem;}"
+        '<div class="vd-container">'
+        # SVG 箭头定义
+        + '<svg class="vd-svg-defs" width="0" height="0">'
+        + '<defs>'
+        + '<marker id="vd-arrow" viewBox="0 0 10 10" refX="8" refY="5"'
+        + ' markerWidth="6" markerHeight="6" orient="auto-start-reverse">'
+        + '<path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/>'
+        + "</marker>"
+        + "</defs></svg>"
+        # 节点区域
+        + node_html
+        # 多节点的连接箭头
+        + (f'<div class="vd-edges">{"".join(svg_lines)}</div>' if n_count > 1 else "")
+        + "</div>"
+        # 样式
+        + "<style>"
+        ".vd-container{position:relative;background:#0f1117;border-radius:12px;"
+        " border:1px solid rgba(99,102,241,.25);padding:28px 20px;margin:10px 0;}"
+        # 节点卡片
+        ".vd-node{background:linear-gradient(135deg,#1e1b4b,#1a1744);"
+        " border:2px solid #6366f1;border-radius:12px;padding:16px 24px;"
+        " display:flex;flex-direction:column;align-items:center;gap:6px;"
+        " min-width:140px;transition:transform .15s ease;}"
+        ".vd-node:hover{transform:translateY(-2px);border-color:#818cf8;}"
+        ".vd-node-icon{font-size:1.4rem;color:#818cf8;}"
+        ".vd-node-label{font-size:.92rem;font-weight:700;color:#e5e7eb;white-space:nowrap;}"
+        ".vd-node-kind{font-size:.72rem;color:#6366f1;text-transform:uppercase;"
+        " letter-spacing:1.5px;font-weight:600;margin-top:2px;}"
+        # 单节点居中布局
+        ".vd-single-center{display:flex;flex-direction:column;align-items:center;gap:18px;}"
+        # 信息框
+        ".vd-info{display:flex;flex-direction:column;align-items:center;gap:4px;"
+        " padding:12px 24px;background:rgba(99,102,241,.08);border-radius:10px;"
+        " border:1px dashed rgba(99,102,241,.35);max-width:320px;text-align:center;}"
+        ".vd-info-title{font-size:.9rem;font-weight:700;color:#a5b4fc;}"
+        ".vd-info-desc{font-size:.78rem;color:#9ca3af;line-height:1.45;}"
+        # 多节点横向排列
+        ".vd-multi-col{display:flex;justify-content:center;align-items:flex-start;"
+        " gap:20px;flex-wrap:wrap;}"
+        # SVG 连线
+        ".vd-edges{position:absolute;top:0;left:0;width:100%;height:100%;"
+        " pointer-events:none;z-index:0;overflow:hidden;}"
+        ".vd-edge{stroke:#6366f1;stroke-width:2;marker-end:url(#vd-arrow);"
+        " opacity:.6;}"
         "</style>"
     )
 
@@ -225,6 +268,30 @@ def show_telemetry(kernel: FEKKernel):
             st.sidebar.caption("安装 pandas 可查看详细轨迹表：pip install pandas")
 
 
+def _show_result_summary(result):
+    """将 result.summary() 的信息拆分为格式化的指标行，替代原始字符串。"""
+    cols = st.columns(5, gap="small")
+    with cols[0]:
+        st.metric("策略", result.strategy.zh)
+    with cols[1]:
+        st.metric("复杂度", f"{result.complexity.zh} ({result.complexity_score:.2f})")
+    with cols[2]:
+        st.metric("节点数", str(len(result.node_results)))
+    with cols[3]:
+        st.metric(
+            "延迟 / 成本",
+            f"{result.total_latency_ms:.0f}ms / ${result.total_cost_usd:.5f}",
+        )
+    with cols[4]:
+        fused = "✅" if result.fused else "—"
+        st.metric(
+            "质量",
+            f"{result.avg_quality:.2f}",
+            delta=f"融合 {fused}",
+            delta_color="normal" if result.fused else "off",
+        )
+
+
 def main():
     st.set_page_config(page_title="FEK —— 融合执行内核", layout="wide")
     mode = os.getenv("FEK_MODE", "mock")
@@ -249,7 +316,8 @@ def main():
         if st.button("运行 FEK", type="primary"):
             with st.spinner("FEK 正在思考…"):
                 result = kernel.run(prompt)
-            st.success(result.summary())
+            # 用指标行替代原始 summary 字符串
+            _show_result_summary(result)
             st.markdown(f"**策略决策：** {kernel.policy.explain(result.complexity_score)}")
             show_pipeline(result)
             show_graph(result, kernel)
