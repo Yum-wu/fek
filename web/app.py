@@ -72,98 +72,106 @@ def show_pipeline(result):
     st.markdown(_pipeline_html(result), unsafe_allow_html=True)
 
 
+def _check_graphviz_binary() -> bool:
+    """快速检查 graphviz 系统 dot 二进制是否真正可用。"""
+    try:
+        import graphviz
+        # 实际尝试渲染一个最小图
+        dot = graphviz.Digraph()
+        dot.node("a", "test")
+        dot.pipe(format="svg")
+        return True
+    except Exception:
+        return False
+
+
 def show_graph(result, kernel: FEKKernel):
     st.subheader("执行图（DAG）")
     # 为可视化重建产生该结果的执行图
     from fek import Task
-    from fek.classifier import ComplexityClassifier
     from fek.compiler import GraphBuilder
 
     task = Task(id=result.task_id, prompt=result.prompt)
     graph = GraphBuilder().build(result.strategy, task)
 
-    # 策略 1：graphviz Python 包 + 系统二进制
-    try:
-        import graphviz  # type: ignore
+    node_count = len(graph.nodes)
 
-        src = graph.to_dot()
-        # 注入暗黑主题样式
-        styled = src.replace(
-            'node [shape=box, style=rounded];',
-            (
-                "node [shape=box, style=rounded, fontname='sans-serif', "
-                "color='#6366f1', fillcolor='#1e1e2e', fontcolor='#e5e7eb', "
-                "penwidth=2];"
-                "edge [color='#6366f1', penwidth=1.5, arrowsize=.8];"
-                "bgcolor='#0f1117';"
-                "rankdir=TB;"
-            ),
-        )
-        st.graphviz_chart(styled, use_container_width=True)
-        return
-    except Exception:
-        pass
+    # ── 策略 1：graphviz（需 Python 包 + 系统(dot) 二进制都在）──
+    if _check_graphviz_binary():
+        try:
+            import graphviz  # type: ignore
 
-    # 策略 2：Mermaid 渲染（Streamlit 原生支持）
+            src = graph.to_dot()
+            styled = src.replace(
+                'node [shape=box, style=rounded];',
+                (
+                    "node [shape=box, style=rounded, fontname='sans-serif', "
+                    "color='#6366f1', fillcolor='#1e1e2e', fontcolor='#e5e7eb', "
+                    "penwidth=2];"
+                    "edge [color='#6366f1', penwidth=1.5, arrowsize=.8];"
+                    "bgcolor='#0f1117';"
+                    "rankdir=TB;"
+                ),
+            )
+            st.graphviz_chart(styled, width="stretch")
+            return
+        except Exception:
+            pass
+
+    # ── 策略 2：Mermaid（通过 components.html 注入 CDN 渲染）──
     mermaid_src = graph.to_mermaid()
     try:
-        # 尝试直接用 Streamlit 的 Mermaid 支持（部分版本可用）
-        with st.container():
-            st.components.v1.html(
-                _mermaid_html(mermaid_src), height=max(160, len(graph.nodes) * 60)
-            )
+        html = _mermaid_html(mermaid_src, node_count)
+        st.components.v1.html(html, height=max(180, node_count * 55), scrolling=False)
         return
     except Exception:
         pass
 
-    # 策略 3：纯 HTML 节点-连线图（零依赖兜底）
-    st.markdown(_html_dag(graph), unsafe_allow_html=True)
+    # ── 策略 3：纯 Flexbox 可视化节点图（零依赖，100% 可靠）──
+    st.markdown(_flex_dag(graph), unsafe_allow_html=True)
 
 
-def _mermaid_html(mermaid_src: str) -> str:
+def _mermaid_html(mermaid_src: str, node_count: int = 1) -> str:
+    h = max(200, node_count * 60)
     return f"""
-<!DOCTYPE html><html><head>
+<div style="background:#0d1117;border-radius:10px;padding:16px;margin:8px 0;">
+<pre class="mermaid">{mermaid_src}</pre>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-</head><body style="background:#0d1117;color:#e5e7eb;padding:12px;">
-<div class="mermaid">{mermaid_src}</div>
-<script>mermaid.initialize({{startOnLoad:true,theme:'dark',securityLevel:'loose'}});</script>
-</body></html>"""
+<script>mermaid.initialize({{startOnLoad:true,theme:'dark',securityLevel:'loose',startOnLoad:true}});</script>"""
 
 
-def _html_dag(graph) -> str:
-    """零依赖的 HTML DAG 兜底渲染。"""
+def _flex_dag(graph) -> str:
+    """零依赖的 Flexbox DAG 兜底 —— 不用绝对定位，保证在 Streamlit 中可见。"""
     nodes_html = []
     for nid, n in graph.nodes.items():
         label = node_zh_label(n.role, n.kind)
-        nodes_html.append(f'<div id="n-{nid}" class="dag-node">{label}</div>')
+        nodes_html.append(
+            f'<div class="fd-node" id="fd-{nid}">{label}</div>'
+        )
 
     edges_html = []
     for nid, n in graph.nodes.items():
         for dep in n.depends_on:
             edges_html.append(
-                f'<svg class="dag-edge" style="position:absolute;'
-                f'pointer-events:none;z-index:0;">'
-                f'<line id="e-{dep}-{nid}" data-from="#n-{dep}" data-to="#n-{nid}" '
-                f'stroke="#6366f1" stroke-width="2" marker-end="url(#arrow)"/>'
-                f"</svg>"
+                f'<div class="fd-edge">&#8595; <span class="fd-edge-txt">'
+                f'# {node_zh_label(graph.nodes[dep].role, graph.nodes[dep].kind)} '
+                f'&#8594; #{label}</span></div>'
             )
 
     return (
-        f'<div style="position:relative;padding:24px 16px;">'
-        f'<svg width="0" height="0"><defs>'
-        f'<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"'
-        f' markerWidth="6" markerHeight="6" orient="auto-start-reverse">'
-        f'<path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1"/>'
-        f'</marker></defs></svg>'
-        f'<div style="display:flex;flex-direction:column;gap:20px;align-items:center;'
-        f' position:relative;z-index:1;">'
+        '<div style="background:#0f1117;border-radius:10px;padding:20px;'
+        ' border:1px solid rgba(99,102,241,.25);margin:8px 0;">'
+        '<div style="display:flex;flex-direction:column;gap:12px;align-items:center;">'
         + "\n".join(nodes_html)
-        + "</div></div>"
         + "\n".join(edges_html)
-        + "<style>"
-        ".dag-node{display:inline-block;background:#1e1e2e;border:2px solid #6366f1;"
-        " border-radius:10px;color:#e5e7eb;padding:10px 18px;font-size:.88rem;"
-        " text-align:center;white-space:nowrap;}"
+        + "</div></div>"
+        "<style>"
+        ".fd-node{display:inline-block;background:#1e1b4b;border:2px solid #6366f1;"
+        " border-radius:10px;color:#c7d2fe;padding:10px 22px;font-size:.9rem;"
+        " font-weight:600;white-space:nowrap;}"
+        ".fd-edge{color:#6366f1;font-size:.78rem;text-align:center;margin:2px 0;}"
+        ".fd-edge-txt{color:#9ca3af;}"
         "</style>"
     )
 
@@ -190,16 +198,20 @@ def show_telemetry(kernel: FEKKernel):
             display_df = df.rename(
                 columns={
                     "strategy": "策略",
-                    "latency_ms": "延迟(ms)",
-                    "cost_usd": "成本($)",
+                    "latency_ms": "延迟",
+                    "cost_usd": "成本",
                     "quality": "质量",
                 }
-            )[["策略", "延迟(ms)", "成本($)", "质量"]]
+            )[["策略", "延迟", "成本", "质量"]]
             # 策略列用中文标签
             display_df["策略"] = display_df["策略"].map(
                 lambda s: getattr(Strategy(s), "zh", s) if s else ""
             )
-            st.sidebar.dataframe(display_df, use_container_width=True, height=200)
+            # 数值格式化
+            display_df["延迟"] = display_df["延迟"].map(lambda x: f"{x:.0f}ms")
+            display_df["成本"] = display_df["成本"].map(lambda x: f"${x:.5f}")
+            display_df["质量"] = display_df["质量"].map(lambda x: f"{x:.3f}")
+            st.sidebar.dataframe(display_df, width=280, height=200)
         except ImportError:
             st.sidebar.caption("安装 pandas 可查看详细轨迹表：pip install pandas")
 
