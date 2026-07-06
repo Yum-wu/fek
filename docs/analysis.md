@@ -1,5 +1,16 @@
 # FEK 设计评估与黑客松 MVP 落地建议
 
+> ⚠️ **历史文档（Historical）**：本文件是 FEK 作为黑客松 Demo 时的设计评估（评委视角）。
+> 项目定位已重构为 **Adaptive AI Execution Engine（自适应 AI 执行引擎）**，相关结论仍参考，但权威架构/术语/路线图请以以下新文档为准：
+> - 权威架构：`docs/architecture.md`
+> - 愿景与非目标：`VISION.md`
+> - 生态定位：`docs/ecosystem/ai-infra-landscape.md`
+> - 竞争分析：`docs/competitive-analysis.md`
+> - 路线图（Product/Research 分离）：`docs/roadmap.md`
+> - 术语审计：`docs/terminology.md`
+> - RFC 体系：`docs/rfcs/`
+> - 架构评审：`docs/reviews/architecture-review-2026.md`
+
 > 配套仓库：根目录（已包含可运行代码，本文件是分析 + 建议部分）
 
 ---

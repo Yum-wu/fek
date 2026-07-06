@@ -9,166 +9,179 @@
   <img src="https://img.shields.io/badge/%E2%9A%A1-powered%20by%20Rapid%20Prototyper-22c55e.svg" alt="Made with">
 </p>
 
-# ⚡ FEK · Fusion Execution Kernel（融合执行内核）
+# ⚡ FEK · Adaptive AI Execution Engine（自适应 AI 执行引擎）
 
-> 一个自适应执行内核：把任意任务自动编译成**最优的多模型计算图**，并持续对成本 / 延迟 / 质量做权衡优化。
+> **FEK 为每个 AI 任务自动决定：用哪种执行策略最划算。**
 
-FEK 不规定 LLM *应该怎么思考*，而是为每个任务**自动选择计算策略**：
+你提交一个任务，FEK 自动判断它的复杂度，选择一个执行策略——单模型一次调用、规划+批判的多智能体、还是混合专家（MoA）融合——把它编译成计算图、执行，并从每次运行的成本 / 延迟 / 质量里持续学习、优化未来的选择。
 
-```
-任务 ──▶ 复杂度分类 ──▶ 策略引擎 ──▶ 图编译器
-                                  │
-                                  ▼
-              执行图(DAG) ──▶ 运行时 ──▶ 融合 ──▶ 反思 ──▶ 遥测
-```
-
-三种策略，一个内核：
-- **SINGLE** —— 单模型一次调用，便宜且快
-- **MULTI_AGENT** —— 基于角色的智能体：规划 → 执行 → 批判 → 综合
-- **MOA** —— 混合智能体（Mixture-of-Agents）：并行多模型 + 融合，专治高不确定性任务
+**你只提交任务，不写 Agent、不配工作流、不挑模型。FEK 决定怎么执行。**
 
 ---
 
-## ✨ 为什么是 FEK（给开发者）
+## 1. 为什么需要 FEK（Why FEK）
 
-- **零依赖即可运行**：`mock` 模式下无需任何 API key，克隆下来一条命令就能跑。
-- **看得见的"执行智能"**：你能亲眼看到系统*决定*用哪种策略、以及*为什么*（策略引擎自带 `explain()`）。
-- **成本感知**：遥测把每种策略的质量 / 延迟 / 成本并排对比（"对战模式"），让"更多算力 ≠ 更好"变成可量化结论。
-- **清晰分层、易扩展**：代码结构严格对应 `FEK` 架构，从 v0 平滑演进到 v4。
-- **云端零摩擦**：无数据库、无鉴权、无构建步骤，一行命令部署到 Hugging Face / Streamlit Cloud。
+今天搭一个"会思考的 AI 系统"，只有两条路，都不完美：
+
+- **手写 Agent / 工作流**（LangGraph / AutoGen / CrewAI）：灵活，但每个任务都用"重"策略，成本和延迟失控。
+- **直接调一个强模型**：简单，但简单任务浪费钱、困难任务又不够。
+
+两条路都缺一个东西：**一个能"看任务下菜碟"的执行层**——简单任务用便宜的单次调用，困难任务才上多智能体 / MoA，并且能**量化证明"多花的算力确实换来了更好的结果"**。
+
+FEK 就是这一层。它跑在 Gateway（如 LiteLLM / OpenRouter）**之上**，可嵌入 Agent Framework **之内**——既不是网关，也不是 Agent 框架。
 
 ---
 
-## 🏗️ 架构
+## 2. 30 秒看懂
 
-```mermaid
-flowchart LR
-    T[任务 Task] --> C[复杂度分类器<br/>评分 0..1]
-    C --> P{策略引擎<br/>Policy Engine}
-    P -->|低| S[SINGLE<br/>单模型]
-    P -->|中| M[MULTI_AGENT<br/>角色智能体]
-    P -->|高| A[MOA<br/>并行+融合]
-    S --> G[执行图 DAG]
-    M --> G
-    A --> G
-    G --> R[运行时 Runtime]
-    R --> F[融合 Fusion]
-    F --> E[反思 Reflection]
-    E --> TL[遥测 Telemetry]
-    TL -. 学习偏移 .-> P
+```
+问题：这个任务该用单模型还是多智能体？多智能体是不是在瞎花钱？
+  │
+  ▼
+方案：FEK 按复杂度自动选策略，成本/质量/延迟可解释、可量化、可学习
+  │
+  ▼
+Demo：python examples/basic_demo.py   （零 API key，离线可跑）
+  │
+  ▼
+架构：Task Profiler → Policy Engine → Graph Compiler → Compute Graph
+       → Runtime（Fusion + Evaluation）→ Telemetry → 学习回流
+  │
+  ▼
+路线：v1 Adaptive Runtime（已落地） → v2 Learning Optimizer（近期）
+       研究：Self-Evolving Execution / Autonomous Kernel（不排期）
 ```
 
 ---
 
-## 🚀 快速开始（mock 模式，零 API key）
+## 3. 快速开始（Quick Demo）
 
 ```bash
-# 1. 克隆
+# 克隆
 git clone https://github.com/Yum-wu/fek.git
 cd fek
 
-# 2.（可选）虚拟环境
-python -m venv .venv && source .venv/bin/activate
-
-# 3. 命令行 Demo —— 完全离线
+# 命令行 Demo —— 完全离线，无需任何 API key
 python examples/basic_demo.py
-python examples/battle_demo.py
+python examples/battle_demo.py        # 三策略成本/质量对战
+python examples/learning_demo.py      # 看策略学习曲线
 
-# 4. 看学习层：从执行轨迹自适应调整策略选择（离线）
-python examples/learning_demo.py
-python examples/learning_replay.py
-
-# 5.（可选）Web 界面，需要 streamlit
+# Web 界面（需 streamlit）
 pip install streamlit
-streamlit run web/app.py
+streamlit run web/app.py              # http://localhost:8501
 ```
 
-> **Windows 用户**：直接双击仓库根目录的 **`start.bat`** 即可调出菜单，选择 [1]~[4] 一键运行 Demo / Web / 测试，无需手动敲命令（首次运行 Web 会自动安装 streamlit）。
-
-Web 界面在 `http://localhost:8501` 打开，展示实时执行图、自动选择的策略，以及带遥测的三种策略对战。
+> **Windows 用户**：双击仓库根目录的 **`start.bat`** 调出菜单，选 [1]~[4] 一键运行 Demo / Web / 测试。
 
 ### 作为库使用
 
 ```python
 from fek import FEKKernel
 
-kernel = FEKKernel()                       # 默认 mock 后端
+kernel = FEKKernel()                       # 默认 mock 后端，零 API key
 result = kernel.run("对比 Python 和 Go 做后端服务")
-print(result.summary())                    # [混合专家（moa）] 复杂度=高（high）(0.82) | 节点数=5 融合=True | ...
+print(result.summary())
+# [混合专家（MoA）] 复杂度=高（high）(0.82) | 节点数=5 | 融合=True | ...
 print(kernel.policy.explain(result.complexity_score))
+# 为什么选这个策略：基于复杂度与历史学习偏好
 ```
+
+**真实 LLM（可选）**：设置 `FEK_MODE=openai` + `OPENAI_API_KEY` 即可接入 OpenAI 兼容端点（包括 Ollama / vLLM / OpenRouter）。详见 `.env.example`。
 
 ---
 
-## 📦 项目结构
+## 4. 核心概念（Core Concepts）
 
-```
-fek/
-├── fek/                  # 内核包（核心层纯标准库，零第三方依赖）
-│   ├── core/             # 类型（Strategy/Complexity/Task）+ 执行图 DAG
-│   ├── classifier/       # 复杂度分类器：任务 → 评分 [0,1]
-│   ├── policy/           # 策略引擎：评分 → 策略（核心创新点，含 explain()）
-│   ├── compiler/         # 图编译器：（策略, 任务）→ 执行图 DAG
-│   ├── runtime/          # 执行器：拓扑序执行 DAG
-│   ├── fusion/           # MoA 融合层
-│   ├── reflection/       # 质量评估器（可接入 LLM 裁判）
-│   ├── models/           # LLM 后端抽象 + MockBackend（离线）+ OpenAIBackend
-│   ├── telemetry/        # 轨迹记录：成本/延迟/质量
-│   ├── learning/         # 学习层：上下文老虎机 + 奖励 + 持久化（零依赖）
-│   └── kernel.py         # FEKKernel —— 唯一编排入口
-├── examples/             # basic_demo.py、battle_demo.py、learning_demo.py、learning_replay.py
-├── web/                  # app.py —— Streamlit 演示界面
-├── tests/                # unittest 测试套件（零依赖，20+ 用例）
-├── docs/analysis.md      # 设计评估 + MVP 范围建议
-├── assets/logo.svg       # README 横幅
-├── pyproject.toml        # 打包 / `pip install -e .`
-├── requirements.txt
-├── .env.example
-├── LICENSE               # MIT
-├── CODE_OF_CONDUCT.md
-├── CONTRIBUTING.md
-├── SECURITY.md          # 安全漏洞报告政策
-├── start.bat            # Windows 一键启动器
-└── .github/workflows/ci.yml
-```
-
-与 `FEK` 统一架构的层级映射：
-
-| FEK 层级 | 本仓库对应 |
+| 概念 | 一句话 |
 |---|---|
-| 任务理解 | `classifier` |
-| 执行策略（Policy） | `policy`（创新点） |
-| 图编译器 | `compiler` |
-| 执行运行时 | `runtime`（Python；v4 愿景用 Go） |
-| 多智能体融合 | `fusion` |
-| 反思 / 评估 | `reflection` |
-| 遥测 | `telemetry` |
-| 策略学习 | `learning`（上下文老虎机，从遥测轨迹学习） |
+| **Task Profiler** | 给任务"画像"：估计复杂度 [0,1]（当前为可解释启发式） |
+| **Policy Engine** | FEK 的心脏：按复杂度选策略（SINGLE / MULTI_AGENT / MOA），可解释、可学习 |
+| **Compute Graph** | 策略编译出的执行计划（DAG），纯数据结构 |
+| **Runtime** | 拓扑序执行 Compute Graph，并行、聚合、打分 |
+| **Fusion Engine** | 把多个智能体输出聚合成一个答案（MoA 的核心，仅子组件） |
+| **Evaluation** | 给输出打质量分 [0,1]（当前启发式占位，未来 LLM 裁判） |
+| **Telemetry** | 记录每次运行的成本/延迟/质量，回流 Policy Engine 学习 |
+
+**核心创新**：不是其中任一组件，而是把它们组织成**成本感知、可解释、可学习的执行闭环**（见 `docs/architecture.md` Part 4）。
 
 ---
 
-## 🔌 真实 LLM 模式（可选）
+## 5. 架构（Architecture）
 
-设置环境变量（参考 `.env.example`）即可接入 OpenAI 兼容端点：
-
-```bash
-export FEK_MODE=openai
-export OPENAI_API_KEY=sk-...
-export OPENAI_MODEL=gpt-4o-mini
-python examples/basic_demo.py
+```mermaid
+flowchart LR
+    T[任务 Task] --> P[Task Profiler<br/>复杂度画像]
+    P --> PE{Policy Engine<br/>策略选择}
+    PE -->|低| S[SINGLE]
+    PE -->|中| M[MULTI_AGENT]
+    PE -->|高| A[MOA]
+    S --> G[Compute Graph]
+    M --> G
+    A --> G
+    G --> R[Runtime]
+    R --> F[Fusion Engine]
+    R --> E[Evaluation]
+    R --> TL[Telemetry]
+    TL -. 学习 .-> PE
 ```
 
-任何 OpenAI 兼容服务端都可用（`OPENAI_BASE_URL`），也可接入本地模型（如 Ollama、vLLM）。
+权威架构文档：`docs/architecture.md` ｜ 模块 RFC：`docs/rfcs/`
 
 ---
 
-## ☁️ 部署
+## 6. 生态定位（Ecosystem Position）
 
-- **本地命令行（零依赖）：** `python examples/basic_demo.py`
-- **本地 Web：** `pip install streamlit && streamlit run web/app.py`
-- **云端（Hugging Face Spaces / Streamlit Community Cloud）：** 推送仓库，入口设为 `web/app.py` 即可。
+```
+Applications → Agent Frameworks → ▶ Execution Layer (FEK) ◀ → Gateway → SDK → Model
+```
 
-无数据库、无鉴权、无构建步骤——刻意而为，让任何人在一分钟内跑起来。
+FEK 属于 **Execution Layer**：在 Gateway 之上、Agent Framework 之内。它**不是 Gateway**（不代理 token API），**不是 Agent Framework**（你不写 Agent），**不只是 MoA**（MoA 只是多种策略之一）。
+
+完整生态地图与逐项目对比：`docs/ecosystem/ai-infra-landscape.md` ｜ `docs/competitive-analysis.md`
+
+---
+
+## 7. 路线图（Roadmap）
+
+**Product（近期、可交付）**
+- ✅ **v1 Adaptive Runtime**：自动策略选择 + 成本感知执行 + Telemetry + mock 可跑
+- 🔜 **v2 Learning Optimizer**：学习升级（可切换 bandit）、真实 token 计费、学习可回测
+
+**Research（探索、不排期、不承诺）**
+- R1 Self-Evolving Execution（图变异/角色自演化）
+- R2 Autonomous Kernel（自主目标分解）
+- R3 更好 Task Profiling（嵌入/检索/LLM 自评）——**最高优先级改进**
+- R4 真实 LLM 裁判
+
+完整路线图（含非目标）：`docs/roadmap.md` ｜ `VISION.md`
+
+---
+
+## 8. 与其他项目对比（Comparison）
+
+| 项目 | 层 | 与 FEK 关系 |
+|---|---|---|
+| LiteLLM / OpenRouter | Gateway | FEK 可当其上游调用方 |
+| LangGraph / AutoGen / CrewAI | Agent Framework | FEK 可嵌入其节点 |
+| MoA (Together AI) | 融合技术 | FEK 的多种策略之一 |
+
+10 个项目详细对比：`docs/competitive-analysis.md`
+
+---
+
+## 9. 愿景（Vision）
+
+FEK 的长期目标是让"如何执行一个 AI 任务"成为**可被优化、可被学习、可被解释的一等公民**——应用只描述任务，FEK 负责怎么跑最划算。
+
+完整愿景、设计原则、非目标：`VISION.md`
+
+---
+
+## 诚实声明（重要）
+
+- **mock 学习层是方法演示**：在 mock 模式下，quality / cost 为启发式，学习曲线展示的是*方法*而非*真实智能*。真实模式才有真实信号。
+- **Evaluation 是启发式占位**：当前质量分为玩具级，不可当真；接 LLM 裁判是研究路线（R4）。
+- **Task Profiler 是最弱一环**：当前为关键词启发式，正作为最高优先级改进（R3）。
 
 ---
 
@@ -178,34 +191,13 @@ python examples/basic_demo.py
 python -m unittest discover -s tests -v
 ```
 
-CI 会在 Python 3.10–3.13 上自动跑通上述测试（见 `.github/workflows/ci.yml`）。
+CI 在 Python 3.10–3.13 自动跑通（见 `.github/workflows/ci.yml`）。
 
 ---
 
-## 🗺️ MVP 范围与路线图
+## 🛠️ 开发流程：RFC 驱动
 
-已实现（v0 + v1 精华）：
-- ✅ 任务 → 复杂度评分 → 策略选择（策略引擎）
-- ✅ 按策略动态编译执行图（SINGLE / MULTI_AGENT / MOA）
-- ✅ DAG 执行运行时 + MoA 融合
-- ✅ 反思 / 质量评分 + 遥测（成本 / 延迟 / 质量）
-- ✅ 离线 mock 后端 + 可插拔真实 LLM 后端
-- ✅ 带实时图形与对战模式的 Web 界面
-
-路线图（诚实标注，欢迎 PR）：
-- ✅ v2 从轨迹学习策略（上下文老虎机：fek/learning，mock 可演示 + JSON 持久化）
-- 🔜 v3 图变异 / 自演化角色
-- 🔜 v4 目标分解 / 自主目标
-- 🔜 Go 运行时、分布式执行
-
-完整设计评审见 `docs/analysis.md`。
-
----
-
-## 🤝 如何贡献
-
-欢迎 Issue、PR、点 Star！详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
-好的起步任务通常打 `good first issue` 标签：接入真实反思裁判（LLM 打分）、新增策略类型、把学习层升级为 LinUCB。
+FEK 采用 **RFC-Driven Development**：所有重大设计（新增策略、改模块边界、改公共接口、引入依赖）**先写 RFC，再写代码**。RFC 索引与流程见 `docs/rfcs/README.md`。
 
 ---
 

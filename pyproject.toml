@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "fek"
 version = "0.1.0"
-description = "Fusion Execution Kernel —— 自适应多模型执行内核：为每个任务自动选出最优计算图，并持续权衡成本/延迟/质量。"
+description = "FEK · Adaptive AI Execution Engine —— 为每个 AI 任务自动选择并运行最优执行策略，并在成本/质量/延迟上持续学习优化。"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-keywords = ["llm", "agent", "moa", "execution-kernel", "multi-agent", "fusion", "cost-aware", "hackathon"]
+keywords = ["llm", "ai-execution", "execution-engine", "policy-engine", "multi-agent", "moa", "cost-aware", "adaptive"]
 authors = [{ name = "FEK Contributors" }]
 maintainers = [{ name = "FEK Contributors" }]
 classifiers = [
