@@ -122,14 +122,6 @@ def show_graph(result, kernel: FEKKernel):
 
     # ── 策略 2：纯 HTML/CSS 可视化（零依赖，100% 可靠）──
     st.html(_visual_dag(graph, result.strategy))
-    else:
-        # 硬编码兜底——确认 st.html 在此上下文能渲染
-        st.html(
-            '<div style="background:#1e1b4b;border:2px solid #6366f1;border-radius:12px;'
-            'padding:24px;text-align:center;color:#c7d2fe;font-size:.92rem;font-weight:600;">'
-            f'{node_zh_label(list(graph.nodes.values())[0].role, list(graph.nodes.values())[0].kind)}'
-            '</div>'
-        )
 
 
 def _visual_dag(graph, strategy) -> str:
