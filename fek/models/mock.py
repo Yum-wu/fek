@@ -22,11 +22,11 @@ _MODEL_PROFILE = {
 
 # 不同角色对应的回答模板
 _ROLE_TEMPLATES = {
-    "planner": "Plan: 将需求拆解为步骤。(1) 澄清目标；(2) 列出方法；(3) 标注风险。",
-    "executor": "Solution: 围绕核心诉求，给出具体步骤与推理。",
-    "critic": "Critique: 指出遗漏、边界情况，以及一条改进建议。",
-    "synthesizer": "Synthesis: 将计划与解答合成为一份连贯的答案。",
-    "solver": "Answer: 直接、结构化地回答请求。",
+    "planner": "计划：将需求拆解为步骤。(1) 澄清目标；(2) 列出方法；(3) 标注风险。",
+    "executor": "方案：围绕核心诉求，给出具体步骤与推理。",
+    "critic": "批判：指出遗漏、边界情况，以及一条改进建议。",
+    "synthesizer": "综合：将计划与解答合成为一份连贯的答案。",
+    "solver": "回答：直接、结构化地回答请求。",
 }
 
 
@@ -63,8 +63,8 @@ class MockBackend(LLMBackend):
         base = _ROLE_TEMPLATES.get(role, _ROLE_TEMPLATES["solver"])
         # 让回答回显用户任务，使其看起来"理解了任务"
         snippet = prompt.strip().replace("\n", " ")[:120]
-        content = f"[{model}] {base}\n\nTask context: \"{snippet}...\""
+        content = f"[{model}] {base}\n\n任务上下文：\"{snippet}...\""
         # 加入微小确定性差异，使不同模型的输出有所区分
         jitter = self._deterministic_jitter(content, 1.0)
-        content += f"\n(confidence marker: {jitter:.2f})"
+        content += f"\n(置信度标记：{jitter:.2f})"
         return Completion(content=content, model=model, latency_ms=profile["latency"], cost_usd=profile["cost"])
