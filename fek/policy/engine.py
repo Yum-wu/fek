@@ -67,13 +67,15 @@ class PolicyEngine:
         return self._rule_select(score)
 
     def explain(self, score: float, band: Complexity | None = None) -> str:
-        s = score + self._drift
+        # s 用于规则比较（内部含漂移），但展示始终用原始分（用户友好）
+        s = max(score + self._drift, 0.0)
+        display_score = max(score, 0.0)
         # 学习层视角
         if self.learning and band is not None and self.bandit.total_feedback >= self.warmup:
             ctx = band.value
             best = self.bandit.best_arm(ctx, self.arms)
             lines = [
-                f"评分 {s:.2f}，复杂度档 {ctx}，学习层已热身（{self.bandit.total_feedback} 条反馈）："
+                f"评分 {display_score:.2f}，复杂度档 {ctx}，学习层已热身（{self.bandit.total_feedback} 条反馈）："
             ]
             for a in self.arms:
                 m = self.bandit.mean_reward(ctx, a)
@@ -81,12 +83,12 @@ class PolicyEngine:
                 tag = " <- 选中" if a == best else ""
                 lines.append(f"  {a.zh}（{a.value}） 平均奖励 {m:+.3f} (n={n}){tag}")
             return "\n".join(lines)
-        # 规则视角
+        # 规则视角（显示原始分数，不暴露漂移值）
         if s < self.low:
-            return f"评分 {s:.2f} < {self.low:.2f} -> 单模型 SINGLE（单模型已足够）"
+            return f"评分 {display_score:.2f} < {self.low:.2f} -> 单模型 SINGLE（单模型已足够）"
         if s < self.high:
-            return f"{self.low:.2f} <= 评分 {s:.2f} < {self.high:.2f} -> 多智能体 MULTI_AGENT（角色拆分更有帮助）"
-        return f"评分 {s:.2f} >= {self.high:.2f} -> 混合专家 MOA（高不确定性，并行多模型 + 融合）"
+            return f"{self.low:.2f} <= 评分 {display_score:.2f} < {self.high:.2f} -> 多智能体 MULTI_AGENT（角色拆分更有帮助）"
+        return f"评分 {display_score:.2f} >= {self.high:.2f} -> 混合专家 MOA（高不确定性，并行多模型 + 融合）"
 
     def learn(
         self,

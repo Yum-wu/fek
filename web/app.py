@@ -76,7 +76,6 @@ def _check_graphviz_binary() -> bool:
     """快速检查 graphviz 系统 dot 二进制是否真正可用。"""
     try:
         import graphviz
-        # 实际尝试渲染一个最小图
         dot = graphviz.Digraph()
         dot.node("a", "test")
         dot.pipe(format="svg")
@@ -118,60 +117,70 @@ def show_graph(result, kernel: FEKKernel):
         except Exception:
             pass
 
-    # ── 策略 2：Mermaid（通过 components.html 注入 CDN 渲染）──
+    # ── 策略 2：Streamlit 原生 Mermaid（零依赖，官方支持）──
     mermaid_src = graph.to_mermaid()
     try:
-        html = _mermaid_html(mermaid_src, node_count)
-        st.components.v1.html(html, height=max(180, node_count * 55), scrolling=False)
+        st.markdown(f"```mermaid\n{mermaid_src}\n```")
         return
     except Exception:
         pass
 
-    # ── 策略 3：纯 Flexbox 可视化节点图（零依赖，100% 可靠）──
-    st.markdown(_flex_dag(graph), unsafe_allow_html=True)
+    # ── 策略 3：Flexbox 可视化（100% 可靠兜底）──
+    st.markdown(_flex_dag(graph, result.strategy), unsafe_allow_html=True)
 
 
-def _mermaid_html(mermaid_src: str, node_count: int = 1) -> str:
-    h = max(200, node_count * 60)
-    return f"""
-<div style="background:#0d1117;border-radius:10px;padding:16px;margin:8px 0;">
-<pre class="mermaid">{mermaid_src}</pre>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-<script>mermaid.initialize({{startOnLoad:true,theme:'dark',securityLevel:'loose',startOnLoad:true}});</script>"""
+def _flex_dag(graph, strategy) -> str:
+    """Flexbox DAG 兜底 —— 对单节点和多节点都给出有信息量的可视化。"""
+    from fek.core.types import Strategy
 
-
-def _flex_dag(graph) -> str:
-    """零依赖的 Flexbox DAG 兜底 —— 不用绝对定位，保证在 Streamlit 中可见。"""
-    nodes_html = []
+    parts = []
+    # 节点卡片
     for nid, n in graph.nodes.items():
         label = node_zh_label(n.role, n.kind)
-        nodes_html.append(
-            f'<div class="fd-node" id="fd-{nid}">{label}</div>'
+        parts.append(f'<div class="fd-node">{label}</div>')
+
+    # 连线箭头
+    if len(graph.nodes) > 1:
+        for nid, n in graph.nodes.items():
+            for dep in n.depends_on:
+                dep_label = node_zh_label(graph.nodes[dep].role, graph.nodes[dep].kind)
+                parts.append(
+                    f'<div class="fd-arrow">&#8594;</div>'
+                    f'<div class="fd-edge">{dep_label} &#8594; {node_zh_label(n.role, n.kind)}</div>'
+                )
+    else:
+        # 单节点时展示策略说明
+        strat_desc = {
+            Strategy.SINGLE: "单模型直接执行，无依赖节点",
+            Strategy.MULTI_AGENT: "多角色协作流水线",
+            Strategy.MOA: "并行多模型 + 融合",
+        }
+        desc = strat_desc.get(strategy, "执行图节点")
+        parts.append(
+            f'<div class="fd-info">'
+            f'<span class="fd-info-icon">&#9432;</span>'
+            f'{desc}'
+            f'</div>'
         )
 
-    edges_html = []
-    for nid, n in graph.nodes.items():
-        for dep in n.depends_on:
-            edges_html.append(
-                f'<div class="fd-edge">&#8595; <span class="fd-edge-txt">'
-                f'# {node_zh_label(graph.nodes[dep].role, graph.nodes[dep].kind)} '
-                f'&#8594; #{label}</span></div>'
-            )
-
     return (
-        '<div style="background:#0f1117;border-radius:10px;padding:20px;'
-        ' border:1px solid rgba(99,102,241,.25);margin:8px 0;">'
-        '<div style="display:flex;flex-direction:column;gap:12px;align-items:center;">'
-        + "\n".join(nodes_html)
-        + "\n".join(edges_html)
+        '<div class="fd-wrap">'
+        '<div class="fd-inner">'
+        + "\n".join(parts)
         + "</div></div>"
         "<style>"
-        ".fd-node{display:inline-block;background:#1e1b4b;border:2px solid #6366f1;"
-        " border-radius:10px;color:#c7d2fe;padding:10px 22px;font-size:.9rem;"
-        " font-weight:600;white-space:nowrap;}"
-        ".fd-edge{color:#6366f1;font-size:.78rem;text-align:center;margin:2px 0;}"
-        ".fd-edge-txt{color:#9ca3af;}"
+        ".fd-wrap{background:#0f1117;border:1px solid rgba(99,102,241,.25);"
+        " border-radius:12px;padding:20px;margin:8px 0;}"
+        ".fd-inner{display:flex;flex-direction:column;gap:10px;align-items:center;}"
+        ".fd-node{background:#1e1b4b;border:2px solid #6366f1;border-radius:10px;"
+        " color:#c7d2fe;padding:12px 24px;font-size:.92rem;font-weight:600;"
+        " white-space:nowrap;text-align:center;}"
+        ".fd-arrow{color:#6366f1;font-size:1.3rem;font-weight:bold;}"
+        ".fd-edge{color:#9ca3af;font-size:.8rem;text-align:center;}"
+        ".fd-info{display:flex;align-items:center;gap:6px;color:#9ca3af;"
+        " font-size:.82rem;margin-top:4px;padding:8px 16px;background:rgba(99,102,241,.08);"
+        " border-radius:8px;border:1px dashed rgba(99,102,241,.3);}"
+        ".fd-info-icon{color:#6366f1;font-size:1rem;}"
         "</style>"
     )
 
