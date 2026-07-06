@@ -12,6 +12,9 @@ build/
 # 私人设计参考文件（勿提交到公开仓库）
 FEK.MD
 
+# 学习层本地状态（用户私有，由 learning_demo 生成，勿提交）
+fek_policy.json
+
 # 工作区记忆（不要进版本库）
 .workbuddy/
 

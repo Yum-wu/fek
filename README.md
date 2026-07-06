@@ -74,7 +74,11 @@ python -m venv .venv && source .venv/bin/activate
 python examples/basic_demo.py
 python examples/battle_demo.py
 
-# 4.（可选）Web 界面，需要 streamlit
+# 4. 看学习层：从执行轨迹自适应调整策略选择（离线）
+python examples/learning_demo.py
+python examples/learning_replay.py
+
+# 5.（可选）Web 界面，需要 streamlit
 pip install streamlit
 streamlit run web/app.py
 ```
@@ -109,11 +113,12 @@ fek/
 │   ├── fusion/           # MoA 融合层
 │   ├── reflection/       # 质量评估器（可接入 LLM 裁判）
 │   ├── models/           # LLM 后端抽象 + MockBackend（离线）+ OpenAIBackend
-│   ├── telemetry/        # 轨迹记录：成本/延迟/质量 + 可学习偏移
+│   ├── telemetry/        # 轨迹记录：成本/延迟/质量
+│   ├── learning/         # 学习层：上下文老虎机 + 奖励 + 持久化（零依赖）
 │   └── kernel.py         # FEKKernel —— 唯一编排入口
-├── examples/             # basic_demo.py、battle_demo.py
+├── examples/             # basic_demo.py、battle_demo.py、learning_demo.py、learning_replay.py
 ├── web/                  # app.py —— Streamlit 演示界面
-├── tests/                # unittest 测试套件（零依赖，15+ 用例）
+├── tests/                # unittest 测试套件（零依赖，20+ 用例）
 ├── docs/analysis.md      # 设计评估 + MVP 范围建议
 ├── assets/logo.svg       # README 横幅
 ├── pyproject.toml        # 打包 / `pip install -e .`
@@ -137,7 +142,8 @@ fek/
 | 执行运行时 | `runtime`（Python；v4 愿景用 Go） |
 | 多智能体融合 | `fusion` |
 | 反思 / 评估 | `reflection` |
-| 遥测与学习 | `telemetry` |
+| 遥测 | `telemetry` |
+| 策略学习 | `learning`（上下文老虎机，从遥测轨迹学习） |
 
 ---
 
@@ -187,7 +193,7 @@ CI 会在 Python 3.10–3.13 上自动跑通上述测试（见 `.github/workflow
 - ✅ 带实时图形与对战模式的 Web 界面
 
 路线图（诚实标注，欢迎 PR）：
-- 🔜 v2 从轨迹学习策略（仓库已留 `learn()` 桩）
+- ✅ v2 从轨迹学习策略（上下文老虎机：fek/learning，mock 可演示 + JSON 持久化）
 - 🔜 v3 图变异 / 自演化角色
 - 🔜 v4 目标分解 / 自主目标
 - 🔜 Go 运行时、分布式执行
@@ -199,7 +205,7 @@ CI 会在 Python 3.10–3.13 上自动跑通上述测试（见 `.github/workflow
 ## 🤝 如何贡献
 
 欢迎 Issue、PR、点 Star！详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
-好的起步任务通常打 `good first issue` 标签：实现 `learn()`、接入真实反思裁判、增加新策略。
+好的起步任务通常打 `good first issue` 标签：接入真实反思裁判（LLM 打分）、新增策略类型、把学习层升级为 LinUCB。
 
 ---
 

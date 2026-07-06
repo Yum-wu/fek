@@ -118,7 +118,7 @@ fek-demo/
 - [x] 测试套件
 
 **加分但不强求：**
-- [ ] Policy 从 trace 学习（本仓库已留 `learn()` 桩，可现场演示漂移）
+- [x] Policy 从 trace 学习（fek/learning：上下文老虎机，mock 可演示、JSON 持久化、可离线回测）
 - [ ] 把"成本"做成真实 token 计费（接 tokenizer）
 - [ ] 导出执行 trace 为可分享的 JSON/图表
 
@@ -148,7 +148,18 @@ fek-demo/
 | Telemetry & Learning | `fek/telemetry`（含 `learn()` 漂移桩） |
 | v0 验证可行性 | ✅ 全部 v0 能力已可运行 |
 | v1 动态图 + 策略调度 | ✅ 已实现 |
-| v2 学习策略 | ⏳ 仅留接口桩 |
+| v2 学习策略 | ✅ 已实现（上下文老虎机最小真实版，详见 docs/learn-design.md） |
 | v3/v4 自演化 | ⏳ 文档标注为未来工作 |
 
-**一句话总结：** FEK 的设计值得做，但黑客松版本必须把"自动选策略"这一件事做到**可运行、可解释、可量化**，其余愿景诚实标注为 roadmap。本仓库即按此原则落地。
+## 八、learn() 真实最小实现（已落地）
+
+把 v2 的"从轨迹学习策略"从桩升级为真实最小实现，设计细节见 `docs/learn-design.md`。
+
+- **建模**：策略选择 = 上下文老虎机（contextual bandit）。上下文 = 复杂度档位（LOW/MEDIUM/HIGH），臂 = {SINGLE, MULTI_AGENT, MOA}，奖励 = 质量 − λ·成本 − μ·延迟。
+- **算法**：ε-greedy（朴素版，零依赖、可解释），按复杂度档位分桶独立统计三臂均值。
+- **冷启动**：反馈不足时（warmup 默认 8 条）回退阈值规则，保证零配置可跑。
+- **持久化**：学到的参数存本地 JSON（`fek_policy.json`），重启累积，贴合 self-improving 叙事。
+- **验证**：`examples/learning_demo.py`（学习曲线）、`examples/learning_replay.py`（离线回测对比学习 vs 固定阈值）、`tests/test_learning.py`（奖励单调性 / bandit / 持久化 / fallback）。
+- **诚实边界**：mock 下"学习"是方法演示（质量/成本为启发式），真实模式才有真实信号；未做神经网络路由器、Pareto 优化等。
+
+**一句话总结：** FEK 的设计值得做，但黑客松版本必须把"自动选策略"这一件事做到**可运行、可解释、可量化**，其余愿景诚实标注为 roadmap。本仓库即按此原则落地（并补上了 v2 学习层的真实最小实现）。

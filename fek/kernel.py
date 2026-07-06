@@ -31,9 +31,10 @@ class FEKKernel:
         policy: PolicyEngine | None = None,
         telemetry: TelemetryRecorder | None = None,
         telemetry_log: str | None = None,
+        learning: bool = True,
     ):
         self.classifier = ComplexityClassifier()
-        self.policy = policy or PolicyEngine()
+        self.policy = policy or PolicyEngine(learning=learning)
         self.builder = GraphBuilder()
         self.backend = backend or from_env()
         self.executor = Executor(self.backend)
@@ -66,7 +67,7 @@ class FEKKernel:
             avg_quality=avg_q,
         )
         self.telemetry.record(result)
-        self.policy.learn(score, avg_q)  # 用本次结果微调策略偏移
+        self.policy.learn(score, band, strategy, avg_q, total_cost, total_lat)  # 用本次执行轨迹更新学习层
         return result
 
     def run_all_strategies(self, prompt: str) -> dict[Strategy, ExecutionResult]:

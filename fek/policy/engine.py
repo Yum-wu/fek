@@ -1,45 +1,130 @@
-"""策略引擎 —— FEK 的核心创新点。
+"""策略引擎 —— FEK 的核心创新点，现已集成上下文老虎机学习层。
 
-将复杂度评分映射为具体的计算策略。阈值是可变的，以便未来的学习层（v2）
-能根据观察到的执行轨迹对阈值进行微调。正是这个唯一决策点，使 FEK 成为
+将复杂度评分映射为具体的计算策略。默认用阈值规则（冷启动即可跑、行为可预期）；
+当学习层积累足够反馈后，自动切换到由 bandit 决策（自适应），
+并保留阈值规则作为 fallback。正是这个唯一决策点，使 FEK 成为
 "执行智能"而非一段写死的固定流水线。
+
+学习层详见 fek/learning（docs/learn-design.md）。
 """
 
 from __future__ import annotations
 
 from ..core.types import Complexity, Strategy
+from ..learning.bandit import ContextualBandit
+from ..learning.persist import load as _load_policy, save as _save_policy
+from ..learning.reward import DEFAULT_LAMBDA, DEFAULT_MU, compute_reward
+
+DEFAULT_STATE_PATH = "fek_policy.json"
 
 
 class PolicyEngine:
-    def __init__(self, low_threshold: float = 0.33, high_threshold: float = 0.66):
+    def __init__(
+        self,
+        low_threshold: float = 0.33,
+        high_threshold: float = 0.66,
+        learning: bool = True,
+        warmup: int = 8,
+        epsilon: float = 0.15,
+        reward_lambda: float = DEFAULT_LAMBDA,
+        reward_mu: float = DEFAULT_MU,
+        bandit: ContextualBandit | None = None,
+        state_path: str | None = DEFAULT_STATE_PATH,
+    ):
         self.low = low_threshold
         self.high = high_threshold
-        # 根据执行轨迹反馈产生的、可学习的偏移量
+        self.learning = learning
+        self.warmup = warmup
+        self.state_path = state_path
+        # 奖励函数权重（成本/延迟惩罚力度），可调以适配不同预算偏好
+        self.reward_lambda = reward_lambda
+        self.reward_mu = reward_mu
+        # 三臂：SINGLE / MULTI_AGENT / MOA
+        self.arms = list(Strategy)
+        # 优先用外部传入的 bandit；否则新建（并尝试从磁盘加载已学参数）
+        self.bandit = bandit or ContextualBandit(epsilon=epsilon)
+        if state_path:
+            loaded = _load_policy(state_path)
+            if loaded is not None:
+                self.bandit = ContextualBandit.from_dict(loaded)
+        # 阈值规则的微小可学习偏移（作为 fallback 路径的自适应，保留原行为）
         self._drift = 0.0
 
-    def select(self, complexity_score: float) -> Strategy:
-        s = complexity_score + self._drift
+    # ---- 阈值规则决策（冷启动 fallback）----
+    def _rule_select(self, score: float) -> Strategy:
+        s = score + self._drift
         if s < self.low:
             return Strategy.SINGLE
         if s < self.high:
             return Strategy.MULTI_AGENT
         return Strategy.MOA
 
-    def explain(self, complexity_score: float) -> str:
-        # 返回一句可解释的决策说明，便于演示时向评委展示"为什么这样选"
-        s = complexity_score + self._drift
+    def select(self, score: float, band: Complexity | None = None) -> Strategy:
+        # 学习层已热身 -> 用 bandit（按复杂度档位分桶，自适应选臂）
+        if self.learning and band is not None and self.bandit.total_feedback >= self.warmup:
+            return self.bandit.select(band.value, self.arms)
+        # 否则回退阈值规则，保证评委零配置可跑、行为可预期
+        return self._rule_select(score)
+
+    def explain(self, score: float, band: Complexity | None = None) -> str:
+        s = score + self._drift
+        # 学习层视角
+        if self.learning and band is not None and self.bandit.total_feedback >= self.warmup:
+            ctx = band.value
+            best = self.bandit.best_arm(ctx, self.arms)
+            lines = [
+                f"评分 {s:.2f}，复杂度档 {ctx}，学习层已热身（{self.bandit.total_feedback} 条反馈）："
+            ]
+            for a in self.arms:
+                m = self.bandit.mean_reward(ctx, a)
+                n = self.bandit.count(ctx, a)
+                tag = " <- 选中" if a == best else ""
+                lines.append(f"  {a.value:<12} 平均奖励 {m:+.3f} (n={n}){tag}")
+            return "\n".join(lines)
+        # 规则视角
         if s < self.low:
             return f"评分 {s:.2f} < {self.low:.2f} -> SINGLE（单模型已足够）"
         if s < self.high:
             return f"{self.low:.2f} <= 评分 {s:.2f} < {self.high:.2f} -> MULTI_AGENT（角色拆分更有帮助）"
         return f"评分 {s:.2f} >= {self.high:.2f} -> MOA（高不确定性，并行多模型 + 融合）"
 
-    def learn(self, complexity_score: float, quality: float) -> None:
-        """带有 v2 味道的微小自适应：若所选策略质量偏低，则略微扩大该档位，
-        使更困难的任务下次获得更多算力。"""
+    def learn(
+        self,
+        score: float,
+        band: Complexity,
+        strategy: Strategy,
+        quality: float,
+        cost_usd: float,
+        latency_ms: float,
+    ) -> None:
+        """用一次执行轨迹更新学习层。
+
+        - 计算奖励（质量 - 成本/延迟惩罚）
+        - 更新 bandit 对应档位下该策略的均值
+        - 同时保留阈值规则的微小漂移（让 fallback 也能随质量自适应）
+        """
+        reward = compute_reward(quality, cost_usd, latency_ms, self.reward_lambda, self.reward_mu)
+        if self.learning and band is not None:
+            self.bandit.update(band.value, strategy, reward)
+        # 阈值规则的微小自适应（保持原行为）
         if quality < 0.5:
-            # 向下偏移，使该评分下次路由到更"重"的策略
             self._drift -= 0.05
         elif quality > 0.9:
             self._drift += 0.01
         self._drift = max(-0.3, min(0.3, self._drift))
+
+    # ---- 持久化 ----
+    def save(self, path: str | None = None) -> None:
+        p = path or self.state_path
+        if p:
+            _save_policy(self.bandit.to_dict(), p)
+
+    def load(self, path: str | None = None) -> bool:
+        p = path or self.state_path
+        if not p:
+            return False
+        loaded = _load_policy(p)
+        if loaded is not None:
+            self.bandit = ContextualBandit.from_dict(loaded)
+            return True
+        return False
