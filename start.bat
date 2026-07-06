@@ -62,10 +62,11 @@ goto menu
 :WEB
 echo.
 echo 检查 streamlit（首次安装可能稍慢）...
-%PY% -m pip install -q streamlit
+%PY% -m pip install -q streamlit pandas
 echo 启动 Web 界面，浏览器将自动打开（默认 http://localhost:8501）...
 echo 按 Ctrl+C 停止。
-%PY% -m streamlit run web/app.py
+set STREAMLIT_SERVER_HEADLESS=true
+%PY% -m streamlit run web/app.py --server.headless true
 echo.
 pause
 goto menu
