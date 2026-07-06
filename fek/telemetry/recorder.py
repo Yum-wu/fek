@@ -43,12 +43,50 @@ class TelemetryRecorder:
         by_strategy: dict[str, List[dict]] = {}
         for t in self.traces:
             by_strategy.setdefault(t["strategy"], []).append(t)
-        # 按策略汇总平均成本 / 延迟 / 质量
-        lines = ["策略         次数  平均成本    平均延迟  平均质量"]
+
+        # ---- CJK 宽度感知对齐工具 ----
+        # 中文字符在终端占 2 列显示宽度，ASCII 占 1 列。
+        # 普通 str.format() 只按字符数填充，导致中英文混排错位。
+
+        @staticmethod
+        def _dw(s: str) -> int:
+            """计算字符串的终端显示宽度（CJK=2, ASCII=1）。"""
+            w = 0
+            for ch in s:
+                w += 2 if ord(ch) > 0x3000 else 1
+            return w
+
+        @staticmethod
+        def _pad(s: str, target_dw: int) -> str:
+            """用空格将 s 填充到目标显示宽度。"""
+            return s + " " * max(0, target_dw - _dw(s))
+
+        # 定义每列的目标显示宽度（与截图终端一致）
+        col_strat = 12   # 策略名列
+        col_count = 6    # 次数列
+        col_cost = 12    # 平均成本列
+        col_lat = 10     # 平均延迟列
+        col_qual = 8     # 平均质量列
+
+        header = (
+            _pad("策略", col_strat)
+            + _pad("次数", col_count)
+            + _pad("平均成本", col_cost)
+            + _pad("平均延迟", col_lat)
+            + _pad("平均质量", col_qual)
+        )
+        lines = [header]
         for strat, ts in by_strategy.items():
             n = len(ts)
             avg_cost = sum(x["cost_usd"] for x in ts) / n
             avg_lat = sum(x["latency_ms"] for x in ts) / n
             avg_q = sum(x["quality"] for x in ts) / n
-            lines.append(f"{strat:<12}{n:<4}{avg_cost:<11.5f}{avg_lat:<10.0f}{avg_q:.3f}")
+            line = (
+                _pad(strat, col_strat)
+                + _pad(str(n), col_count)
+                + _pad(f"{avg_cost:.5f}", col_cost)
+                + _pad(f"{avg_lat:.0f}", col_lat)
+                + _pad(f"{avg_q:.3f}", col_qual)
+            )
+            lines.append(line)
         return "\n".join(lines)
