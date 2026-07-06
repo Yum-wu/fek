@@ -82,10 +82,13 @@ def show_telemetry(kernel: FEKKernel):
     st.sidebar.subheader("遥测（成本感知叙事）")
     st.sidebar.code(kernel.telemetry.summary() or "暂无运行记录")
     if kernel.telemetry.traces:
-        import pandas as pd
+        try:
+            import pandas as pd
 
-        df = pd.DataFrame(kernel.telemetry.traces)
-        st.sidebar.dataframe(df[["strategy", "latency_ms", "cost_usd", "quality"]], height=200)
+            df = pd.DataFrame(kernel.telemetry.traces)
+            st.sidebar.dataframe(df[["strategy", "latency_ms", "cost_usd", "quality"]], height=200)
+        except ImportError:
+            st.sidebar.caption("安装 pandas 可查看详细轨迹表：pip install pandas")
 
 
 def main():
