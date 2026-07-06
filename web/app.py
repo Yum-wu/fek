@@ -24,6 +24,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import streamlit as st
 
 from fek import FEKKernel, Strategy
+from fek.core.graph import node_zh_label
 
 
 @st.cache_resource
@@ -36,8 +37,8 @@ def show_pipeline(result):
     st.subheader("执行流水线")
     stages = [
         ("任务", result.prompt[:40] + ("…" if len(result.prompt) > 40 else "")),
-        ("复杂度", f"{result.complexity.value} ({result.complexity_score:.2f})"),
-        ("策略", result.strategy.value),
+        ("复杂度", f"{result.complexity.zh} ({result.complexity_score:.2f})"),
+        ("策略", result.strategy.zh),
         ("执行图", f"{len(result.node_results)} 个节点"),
         ("输出", "已融合" if result.fused else "单模型"),
     ]
@@ -71,7 +72,7 @@ def show_graph(result, kernel: FEKKernel):
 def show_nodes(result):
     st.subheader("节点结果")
     for nr in result.node_results:
-        with st.expander(f"{nr.role}  ·  {nr.kind}  ·  {nr.model}"):
+        with st.expander(f"{node_zh_label(nr.role, nr.kind)}  ·  {nr.model}"):
             st.write(nr.content)
             st.caption(
                 f"延迟={nr.latency_ms:.0f}ms · 成本=${nr.cost_usd:.5f} · 质量={nr.quality:.2f}"
@@ -131,20 +132,20 @@ def main():
             key="battle_prompt",
         )
         if st.button("运行对战", type="primary"):
-            with st.spinner("正在运行 SINGLE / MULTI_AGENT / MOA…"):
+            with st.spinner("正在运行 单模型 / 多智能体 / 混合专家（MoA）…"):
                 results = kernel.run_all_strategies(bprompt)
             cols = st.columns(3)
             for i, strat in enumerate([Strategy.SINGLE, Strategy.MULTI_AGENT, Strategy.MOA]):
                 r = results[strat]
                 with cols[i]:
-                    st.markdown(f"### {strat.value}")
+                    st.markdown(f"### {strat.zh}")
                     st.metric("质量", f"{r.avg_quality:.2f}")
                     st.metric("延迟", f"{r.total_latency_ms:.0f} ms")
                     st.metric("成本", f"${r.total_cost_usd:.5f}")
                     st.metric("已融合", "是" if r.fused else "否")
             st.subheader("质量最高的答案")
             best = max(results.values(), key=lambda x: x.avg_quality)
-            st.info(f"胜出：{best.strategy.value}")
+            st.info(f"胜出：{best.strategy.zh}")
             st.markdown(best.final_output)
 
 

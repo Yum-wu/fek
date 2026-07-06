@@ -22,11 +22,27 @@ class Strategy(str, Enum):
     MULTI_AGENT = "multi_agent"  # 基于角色的智能体（规划/执行/批判）
     MOA = "moa"                  # 混合智能体：并行多模型 + 融合
 
+    @property
+    def zh(self) -> str:
+        """中文显示名（页面与日志使用）。"""
+        _MAP = {
+            "single": "单模型",
+            "multi_agent": "多智能体",
+            "moa": "混合专家（MoA）",
+        }
+        return _MAP[self.value]
+
 
 class Complexity(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
+
+    @property
+    def zh(self) -> str:
+        """中文显示名（页面与日志使用）。"""
+        _MAP = {"low": "低", "medium": "中", "high": "高"}
+        return _MAP[self.value]
 
 
 @dataclass
@@ -74,9 +90,10 @@ class ExecutionResult:
 
     def summary(self) -> str:
         return (
-            f"[{self.strategy.value}] complexity={self.complexity.value} "
+            f"[{self.strategy.zh}（{self.strategy.value}）] "
+            f"复杂度={self.complexity.zh}（{self.complexity.value}）"
             f"({self.complexity_score:.2f}) | "
-            f"nodes={len(self.node_results)} fused={self.fused} | "
-            f"latency={self.total_latency_ms:.0f}ms cost=${self.total_cost_usd:.4f} "
-            f"quality={self.avg_quality:.2f}"
+            f"节点数={len(self.node_results)} 融合={self.fused} | "
+            f"延迟={self.total_latency_ms:.0f}ms 成本=${self.total_cost_usd:.4f} "
+            f"质量={self.avg_quality:.2f}"
         )

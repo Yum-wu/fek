@@ -5,6 +5,32 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
+# 节点角色 / 类型 -> 中文显示名（仅用于可视化标签，不改变内部 kind 取值）
+_ROLE_ZH = {
+    "solver": "求解器",
+    "planner": "规划器",
+    "executor": "执行器",
+    "critic": "批判者",
+    "synthesizer": "综合器",
+    "fusion": "融合器",
+    "reflect": "反思器",
+}
+_KIND_ZH = {
+    "llm": "大语言模型",
+    "fusion": "融合",
+    "reflect": "反思",
+}
+
+
+def node_zh_label(role: str, kind: str) -> str:
+    """返回节点的中文标签，形如「求解器｜大语言模型」。"""
+    if role.startswith("agent_"):
+        idx = role.split("_", 1)[1]
+        return f"并行智能体 {idx}"
+    r = _ROLE_ZH.get(role, role)
+    k = _KIND_ZH.get(kind, kind)
+    return f"{r}｜{k}"
+
 
 @dataclass
 class GraphNode:
@@ -60,7 +86,7 @@ class ExecutionGraph:
         """导出 Graphviz DOT 格式，供可视化工具使用。"""
         lines = ["digraph G {", "  rankdir=TB; node [shape=box, style=rounded];"]
         for nid, n in self.nodes.items():
-            label = f"{n.role}\\n[{n.kind}]"
+            label = node_zh_label(n.role, n.kind).replace("｜", "\\n")
             lines.append(f'  "{nid}" [label="{label}"];')
         for nid, n in self.nodes.items():
             for dep in n.depends_on:
@@ -72,7 +98,7 @@ class ExecutionGraph:
         """导出 Mermaid 流程图，供 markdown / Streamlit 渲染。"""
         lines = ["graph TD"]
         for nid, n in self.nodes.items():
-            lines.append(f'    {nid}["{n.role}<br/>{n.kind}"]')
+            lines.append(f'    {nid}["{node_zh_label(n.role, n.kind)}"]')
         for nid, n in self.nodes.items():
             for dep in n.depends_on:
                 lines.append(f"    {dep} --> {nid}")

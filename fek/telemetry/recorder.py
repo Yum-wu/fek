@@ -11,7 +11,7 @@ import json
 import time
 from typing import List, Optional
 
-from ..core.types import ExecutionResult
+from ..core.types import ExecutionResult, Strategy
 
 
 class TelemetryRecorder:
@@ -62,7 +62,7 @@ class TelemetryRecorder:
             return s + " " * max(0, target_dw - _dw(s))
 
         # 定义每列的目标显示宽度（与截图终端一致）
-        col_strat = 12   # 策略名列
+        col_strat = 16   # 策略名列（中文名最长「混合专家（MoA）」约占 15 列）
         col_count = 6    # 次数列
         col_cost = 12    # 平均成本列
         col_lat = 10     # 平均延迟列
@@ -82,7 +82,7 @@ class TelemetryRecorder:
             avg_lat = sum(x["latency_ms"] for x in ts) / n
             avg_q = sum(x["quality"] for x in ts) / n
             line = (
-                _pad(strat, col_strat)
+                _pad(Strategy(strat).zh, col_strat)
                 + _pad(str(n), col_count)
                 + _pad(f"{avg_cost:.5f}", col_cost)
                 + _pad(f"{avg_lat:.0f}", col_lat)

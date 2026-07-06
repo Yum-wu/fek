@@ -94,7 +94,7 @@ from fek import FEKKernel
 
 kernel = FEKKernel()                       # 默认 mock 后端
 result = kernel.run("对比 Python 和 Go 做后端服务")
-print(result.summary())                    # [moa] complexity=high (0.82) | nodes=5 fused=True | ...
+print(result.summary())                    # [混合专家（moa）] 复杂度=高（high）(0.82) | 节点数=5 融合=True | ...
 print(kernel.policy.explain(result.complexity_score))
 ```
 

@@ -79,14 +79,14 @@ class PolicyEngine:
                 m = self.bandit.mean_reward(ctx, a)
                 n = self.bandit.count(ctx, a)
                 tag = " <- 选中" if a == best else ""
-                lines.append(f"  {a.value:<12} 平均奖励 {m:+.3f} (n={n}){tag}")
+                lines.append(f"  {a.zh}（{a.value}） 平均奖励 {m:+.3f} (n={n}){tag}")
             return "\n".join(lines)
         # 规则视角
         if s < self.low:
-            return f"评分 {s:.2f} < {self.low:.2f} -> SINGLE（单模型已足够）"
+            return f"评分 {s:.2f} < {self.low:.2f} -> 单模型 SINGLE（单模型已足够）"
         if s < self.high:
-            return f"{self.low:.2f} <= 评分 {s:.2f} < {self.high:.2f} -> MULTI_AGENT（角色拆分更有帮助）"
-        return f"评分 {s:.2f} >= {self.high:.2f} -> MOA（高不确定性，并行多模型 + 融合）"
+            return f"{self.low:.2f} <= 评分 {s:.2f} < {self.high:.2f} -> 多智能体 MULTI_AGENT（角色拆分更有帮助）"
+        return f"评分 {s:.2f} >= {self.high:.2f} -> 混合专家 MOA（高不确定性，并行多模型 + 融合）"
 
     def learn(
         self,
