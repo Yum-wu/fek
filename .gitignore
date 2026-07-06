@@ -9,6 +9,9 @@ dist/
 build/
 .DS_Store
 
+# 私人设计参考文件（勿提交到公开仓库）
+FEK.MD
+
 # 工作区记忆（不要进版本库）
 .workbuddy/
 

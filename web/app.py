@@ -94,7 +94,7 @@ def main():
     st.title("⚡ FEK —— 融合执行内核")
     st.caption(
         f"自适应多模型执行内核 · 模式：**{mode}** · "
-        "FEK.MD 架构的 v0/v1 黑客松 Demo"
+        "FEK 架构的 v0/v1 黑客松 Demo"
     )
 
     kernel = get_kernel()
