@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+fek_traces.jsonl
+*.egg-info/
+dist/
+build/
+.DS_Store
+
+# 工作区记忆（不要进版本库）
+.workbuddy/
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+*.swp

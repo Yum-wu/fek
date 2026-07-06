@@ -1,0 +1,6 @@
+# Core (mock mode, zero external deps) needs nothing.
+# Optional backends / UI:
+streamlit>=1.30
+graphviz>=0.20   # optional: nicer graph rendering in the web UI
+openai>=1.0      # optional: real LLM mode (FEK_MODE=openai)
+pytest>=8.0      # optional: tests
