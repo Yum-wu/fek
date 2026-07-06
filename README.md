@@ -79,6 +79,8 @@ pip install streamlit
 streamlit run web/app.py
 ```
 
+> **Windows 用户**：直接双击仓库根目录的 **`start.bat`** 即可调出菜单，选择 [1]~[4] 一键运行 Demo / Web / 测试，无需手动敲命令（首次运行 Web 会自动安装 streamlit）。
+
 Web 界面在 `http://localhost:8501` 打开，展示实时执行图、自动选择的策略，以及带遥测的三种策略对战。
 
 ### 作为库使用
@@ -120,6 +122,8 @@ fek/
 ├── LICENSE               # MIT
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md
+├── SECURITY.md          # 安全漏洞报告政策
+├── start.bat            # Windows 一键启动器
 └── .github/workflows/ci.yml
 ```
 
