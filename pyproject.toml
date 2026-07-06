@@ -26,10 +26,10 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/YOUR_ORG/fek"
-Repository = "https://github.com/YOUR_ORG/fek"
-Issues = "https://github.com/YOUR_ORG/fek/issues"
-Documentation = "https://github.com/YOUR_ORG/fek#readme"
+Homepage = "https://github.com/Yum-wu/fek"
+Repository = "https://github.com/Yum-wu/fek"
+Issues = "https://github.com/Yum-wu/fek/issues"
+Documentation = "https://github.com/Yum-wu/fek#readme"
 
 [project.optional-dependencies]
 ui = ["streamlit>=1.30", "graphviz>=0.20"]

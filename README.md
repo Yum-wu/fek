@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/YOUR_ORG/fek/actions/workflows/ci.yml"><img src="https://github.com/YOUR_ORG/fek/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/Yum-wu/fek/actions/workflows/ci.yml"><img src="https://github.com/Yum-wu/fek/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/%E2%9A%A1-powered%20by%20Rapid%20Prototyper-22c55e.svg" alt="Made with">
@@ -64,7 +64,7 @@ flowchart LR
 
 ```bash
 # 1. 克隆
-git clone https://github.com/YOUR_ORG/fek.git
+git clone https://github.com/Yum-wu/fek.git
 cd fek
 
 # 2.（可选）虚拟环境
