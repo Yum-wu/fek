@@ -25,6 +25,8 @@ import uuid
 from .compiler import GraphBuilder
 from .constraint import analyze
 from .core.types import Complexity, Constraints, ExecutionResult, Strategy, Task
+from .learning.constraint_learning import constraint_aware_reward, profile_context_key
+from .learning.learner import Learner
 from .models import LLMBackend, MockBackend, from_env
 from .policy import PolicyEngine
 from .policy.optimizer import PolicyOptimizer
@@ -43,6 +45,8 @@ class FEKKernel:
         telemetry_log: str | None = None,
         learning: bool = True,
         strategy_library=DEFAULT_LIBRARY,
+        learner: "Learner | None" = None,
+        constraint_warmup: int = 8,
     ):
         self.profiler = TaskProfiler()
         self.policy = policy or PolicyEngine(learning=learning)
@@ -52,7 +56,10 @@ class FEKKernel:
         self.telemetry = telemetry or TelemetryRecorder(log_path=telemetry_log)
         # 新定位：约束感知优化器 + 策略库（向后兼容：无约束时仍走 PolicyEngine）
         self.strategy_library = strategy_library
-        self.optimizer = PolicyOptimizer(self.strategy_library)
+        # v2 约束学习：optimizer 可挂载 learner（默认 None = 纯静态、确定）
+        self.optimizer = PolicyOptimizer(
+            self.strategy_library, learner=learner, warmup=constraint_warmup
+        )
 
     def run(
         self,
@@ -132,6 +139,14 @@ class FEKKernel:
             constraints=constraints,
         )
         self.telemetry.record(result)
+        # v2 约束学习：把真实执行轨迹作为反馈回写 learner（仅当已挂载）
+        if self.optimizer.learner is not None:
+            ctx = profile_context_key(profile)
+            used_models = [n.model for n in node_results]
+            reward = constraint_aware_reward(
+                avg_q, total_cost, total_lat, constraints=constraints, used_models=used_models
+            )
+            self.optimizer.learner.update(ctx, strategy.name, reward)
         return result
 
     def run_all_strategies(self, prompt: str) -> dict[Strategy, ExecutionResult]:

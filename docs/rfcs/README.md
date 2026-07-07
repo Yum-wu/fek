@@ -96,3 +96,4 @@ RFC（Request for Comments）= 一份**设计提案文档**，在写代码前描
 | 0010 | Positioning Pivot | Accepted (Supersedes 0001, 0002) |
 | 0011 | Constraint-Policy Optimizer | Accepted (Supersedes 0003) |
 | 0012 | Strategy Library | Accepted |
+| 0013 | Constraint-aware Learning Optimizer | Accepted |

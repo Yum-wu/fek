@@ -16,12 +16,15 @@ from .reward import (
     LATENCY_BUDGET_MS,
     compute_reward,
 )
+from .constraint_learning import constraint_aware_reward, profile_context_key
 
 __all__ = [
     "ContextualBandit",
     "Learner",
     "create_learner",
     "compute_reward",
+    "constraint_aware_reward",
+    "profile_context_key",
     "save",
     "load",
     "reset",

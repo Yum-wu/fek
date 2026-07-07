@@ -1,7 +1,7 @@
 # FEK 迁移计划（Actionable Migration Plan）
 
 > 把"黑客松 Demo（Fusion Execution Kernel）"迁移到"Adaptive AI Execution Engine + RFC 驱动开发"（阶段 0–5，已全部完成 ✅）。
-> 后续战略定位重构（Pivot，RFC 0010/0011/0012）将定位演进为 **Adaptive AI Compute Optimizer**，其代码落地见 **阶段 6**（当前未执行，待 RFC 合并后按计划推进）。
+> 后续战略定位重构（Pivot，RFC 0010/0011/0012）将定位演进为 **Adaptive AI Compute Optimizer**，其代码落地见 **阶段 6**（已执行 ✅，2026-07-07，commit 6270330）。约束感知学习闭环见 **阶段 7**（已执行 ✅，2026-07-07）。
 > 本文档是**可执行清单**，按阶段排序。所有代码重命名必须先有对应 RFC 合并。
 
 ---
@@ -115,6 +115,27 @@
 
 ---
 
+## 阶段 7 · 约束感知学习闭环（v2，已执行 ✅）
+
+> 对应 RFC：**0013** constraint-aware-learning。把学习层正式接入新约束管线，补齐"可学习的策略优化闭环"这一护城河。2026-07-07 执行。
+
+### 7.1 约束感知奖励与上下文键（RFC 0013）
+- [x] 新增 `fek/learning/constraint_learning.py`：`constraint_aware_reward(quality, cost, latency, constraints, used_models)` 在 `compute_reward` 基础上对预算/延迟/隐私/min_quality 违规叠加硬惩罚；`constraints is None` 时退化为原奖励（向后兼容）。
+- [x] `profile_context_key(profile)` 把 `ConstraintProfile` 离散化为 bandit 上下文键（`p{隐私}|q{质量档}|b{预算档}|l{延迟档}|m{模型受限}`）。
+
+### 7.2 Policy Optimizer 接入 learner（RFC 0013）
+- [x] `PolicyOptimizer.__init__` 增加 `learner: Learner | None = None` 与 `warmup: int = 8`；`select()` 在 learner 已挂载且热身且当前上下文有样本时，用 `learner.best_arm` 在可行策略名中选择并映射回策略对象，否则回退静态（`_static_select`）。
+- [x] 安全校验：学习选中的策略若违反硬约束则回退静态；`explain()` 标注决策来源（learned/static）。
+- [x] `FEKKernel` 新增 `learner` / `constraint_warmup` 构造参数（默认 `learner=None` = 纯静态、确定性、存量测试零改动）；`_run_constrained` 执行后用 `profile_context_key` + `constraint_aware_reward` 回写 learner。
+
+### 7.3 测试与示例
+- [x] 新增 `tests/test_constraint_learning.py`（13 用例）：约束违规惩罚、context key 稳定性、冷启动回退静态、热身后学到可行偏好、绝不选中不可行策略、紧预算下收敛到更省策略。
+- [x] 新增 `examples/constraint_learning_demo.py`：同一紧预算约束下多轮执行，展示冷启动→热身后从"超预算 MoA"收敛到"预算内够用策略"。
+
+**零依赖保持**：沿用 RFC 0009 的 `ContextualBandit`（通用 ε-greedy），未引入新依赖；学习层默认关闭，向后兼容。
+
+---
+
 ## 验收标准（Definition of Done）
 
 迁移完成当：
@@ -122,7 +143,7 @@
 2. 代码术语与 `docs/terminology.md` 一致（Compute Graph / Evaluation / Task Profiler / Constraint Analysis / Policy Optimizer / Strategy Library）。
 3. 任何新重大设计均有 RFC。
 4. README 30 秒能讲清：问题 → 方案 → Demo → 架构 → 路线图。
-5. 32 测试全过（含回测基准 `test_backtest`）、CI 绿（Python 3.10–3.13 矩阵 + 冒烟测试）。
+5. 69 测试全过（含约束分析/策略库/优化器/约束学习/回测基准 `test_backtest`）、CI 绿（Python 3.10–3.13 矩阵 + 冒烟测试）。
 
 ---
 

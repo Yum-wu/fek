@@ -67,6 +67,9 @@
 | 约束分析器 | Constraint Analysis | 模块 |
 | 约束画像 | ConstraintProfile | 数据结构 |
 | 策略优化器 | Policy Optimizer | 模块（核心） |
+| 约束感知学习 | Constraint-aware Learning | v2 模块：learner 接入优化器，奖励含约束违规惩罚 |
+| 学习上下文键 | profile_context_key | 把 ConstraintProfile 离散化为 bandit 上下文 |
+| 约束感知奖励 | constraint_aware_reward | 在质量−成本−延迟上叠加硬约束惩罚 |
 | 策略库 | Strategy Library | 模块 |
 | 策略 | Strategy | 可插拔执行策略 |
 | 任务画像器 | Task Profiler | 模块（归 Constraint Analysis） |

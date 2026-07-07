@@ -16,20 +16,20 @@
 - [x] 执行内核：Policy Optimizer + Graph Compiler + Compute Graph + Runtime + Fusion + Evaluation + Telemetry（已落地，前称"Adaptive Runtime"）
 - [x] 学习层：约束感知 bandit（已落地，前称"Learning Optimizer"）
 - [x] Mock 后端：零 API key 可跑；OpenAI 兼容可插拔
-- [ ] **新增 Constraint Analysis**：把 `Task + Constraints` 规范化为 `ConstraintProfile`（质量/预算/延迟/隐私/模型偏好），做可行性检查与模型过滤
-- [ ] **新增 Strategy Library**：把 SINGLE / MULTI_AGENT / MOA 重构为可插拔 Strategy；新增 Planner+Reviewer / Reflection / Debate / ToT / Parallel / Hierarchical 的原型（多来自已有论文，先 mock 实现）
-- [ ] **Policy Optimizer 重构**：输入从"复杂度评分"改为 `ConstraintProfile`，目标改为"约束下最大化质量"
-- [ ] **诚实标注**：mock 学习层是方法演示；Evaluation 是玩具启发式；MoA 只是 Strategy 之一
+- [x] **新增 Constraint Analysis**：把 `Task + Constraints` 规范化为 `ConstraintProfile`（质量/预算/延迟/隐私/模型偏好），做可行性检查与模型过滤（RFC 0011，阶段 6 已落地）
+- [x] **新增 Strategy Library**：把 SINGLE / MULTI_AGENT / MOA 重构为可插拔 Strategy；新增 Planner+Reviewer / Reflection / Debate / ToT / Parallel / Hierarchical 的原型（多来自已有论文，先 mock 实现）（RFC 0012，阶段 6 已落地）
+- [x] **Policy Optimizer 重构**：输入从"复杂度评分"改为 `ConstraintProfile`，目标改为"约束下最大化质量"（RFC 0011，阶段 6 已落地）
+- [x] **诚实标注**：mock 学习层是方法演示；Evaluation 是玩具启发式；MoA 只是 Strategy 之一
 
 **交付标准**：`FEKKernel.run(task, constraints)` 在约束下选策略并 `explain()`；离线 demo 可对比"同一任务在不同预算/延迟约束下的策略选择"。
 
 ### v2 · Constraint-aware Policy Learning（近期，下一个里程碑）
 **目标**：让"在约束下学习选策略"从 demo 升级为可信产品能力。
 
-- [ ] 约束感知奖励：学习目标显式带硬约束（预算/延迟/隐私）与多目标权重（质量−成本−延迟）
+- [x] 约束感知奖励：学习目标显式带硬约束（预算/延迟/隐私）与多目标权重（质量−成本−延迟）—— `constraint_aware_reward` 对违规叠加硬惩罚（RFC 0013，阶段 7 已落地）
 - [ ] 约束冲突协商原型：当约束不可行（如 $0.01 + 高质量 + <1s）时，主动提案并请求确认
 - [ ] 真实成本信号：可选 `tiktoken` 按 token 计费（已具备，接入约束优化目标）
-- [ ] 学习可开关 + 可回测：CI 基准断言"约束下学习后不劣于固定阈值"
+- [x] 学习可开关 + 可回测：learner 默认关闭、可挂载；`tests/test_constraint_learning.py` 断言"约束下学习后收敛到可行策略、绝不选中不可行臂"（RFC 0013，阶段 7 已落地）
 - [ ] Web 洞察面板：展示每策略在各类约束下的平均奖励/样本数/可行性
 
 **交付标准**：真实模式下，约束下学习后的策略在 cost-quality-latency Pareto 上优于固定阈值（有基准证明）；约束冲突可被检测并解释。
@@ -83,6 +83,7 @@
 | 定位 pivot | **0010 positioning-pivot（新增，Supersede 0001/0002）** |
 | Constraint + Policy Optimizer | **0011 constraint-policy-optimizer（新增，Supersede 0003）** |
 | Strategy Library | **0012 strategy-library（新增）** |
+| 约束感知学习（v2） | **0013 constraint-aware-learning（新增）** |
 | v1 基线 | 原 0004 compute-graph, 0005 runtime, 0006 fusion-engine, 0007 evaluation（仍有效） |
 | v2 Learning Optimizer | 0009 learning-optimizer（仍有效，目标并入约束优化） |
 | R3/R4 研究 | 待新 RFC（如 0013 task-constraint-profiling, 0014 llm-judge） |

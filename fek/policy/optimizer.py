@@ -12,6 +12,8 @@
 from __future__ import annotations
 
 from ..core.types import ConstraintProfile
+from ..learning.constraint_learning import profile_context_key
+from ..learning.learner import Learner
 from ..learning.reward import (
     COST_BUDGET_USD,
     DEFAULT_LAMBDA,
@@ -35,12 +37,19 @@ class PolicyOptimizer:
         reward_lambda: float = DEFAULT_LAMBDA,
         reward_mu: float = DEFAULT_MU,
         model_profiles: dict[str, tuple[float, float]] | None = None,
+        learner: "Learner | None" = None,
+        warmup: int = 8,
     ):
         self.library = library or DEFAULT_LIBRARY
         self.lam = reward_lambda
         self.mu = reward_mu
         # 用首个可用模型作为估算代表（启发式；v2 可换更精细的逐模型估算）
         self.model_profiles = model_profiles or _MODEL_PROFILES
+        # v2 约束学习：可选 learner（默认 None = 纯静态、确定、向后兼容）
+        self.learner = learner
+        self.warmup = warmup
+        self._last_mode = "static"  # 最近一次 select 的决策来源（learned/static），供 explain
+        self._last_strategy = None  # 最近一次 select 选中的策略对象，供观察/面板
 
     def _pruned_reasons(self, strategy: BaseStrategy, profile: ConstraintProfile) -> list[str]:
         cost, lat = strategy.estimate(self.model_profiles)
@@ -52,11 +61,43 @@ class PolicyOptimizer:
         return reasons
 
     def select(self, profile: ConstraintProfile) -> BaseStrategy | None:
-        """在约束下选出最优策略；无任何可行策略时返回 None（由调用方报告不可行）。"""
+        """在约束下选出最优策略；无任何可行策略时返回 None（由调用方报告不可行）。
+
+        决策来源（见 ``explain`` / ``self._last_mode``）：
+        - 若挂载了 learner 且已热身、且当前上下文已有样本，则优先采用学习到的偏好；
+        - 否则（含学习器选中的策略仍违反硬约束时）回退纯静态择优。
+        """
         feasible = self.library.filter(profile)
         if not feasible:
+            self._last_strategy = None
             return None
 
+        feasible_names = [s.name for s in feasible]
+
+        # —— 学习路径（v2 约束学习，RFC 0013）——
+        learned: BaseStrategy | None = None
+        if self.learner is not None and self.learner.total_feedback >= self.warmup:
+            ctx = profile_context_key(profile)
+            if any(self.learner.count(ctx, a) > 0 for a in feasible_names):
+                chosen_arm = self.learner.best_arm(ctx, feasible_names)
+                cand = self.library.get(chosen_arm)
+                # 安全校验：学习选中的策略必须仍在可行集且未违反硬约束
+                if cand is not None and cand in feasible and not self._pruned_reasons(cand, profile):
+                    learned = cand
+
+        if learned is not None:
+            self._last_mode = "learned"
+            self._last_strategy = learned
+            return learned
+
+        # —— 静态回退（v1）——
+        self._last_mode = "static"
+        chosen = self._static_select(feasible, profile)
+        self._last_strategy = chosen
+        return chosen
+
+    def _static_select(self, feasible: list[BaseStrategy], profile: ConstraintProfile) -> BaseStrategy | None:
+        """纯静态择优：硬约束剪枝 + 软目标（质量 − 成本 − 延迟）最大化。"""
         chosen: BaseStrategy | None = None
         best_score: float | None = None
         for s in feasible:
@@ -89,6 +130,9 @@ class PolicyOptimizer:
 
         lines.append(f"  候选模型：{profile.allowed_models}")
         chosen = self.select(profile)
+        lines.append(
+            f"  决策来源：{self._last_mode}（learner={'已挂载' if self.learner else '未挂载'}）"
+        )
         for s in self.library.filter(profile):
             cost, lat = s.estimate(self.model_profiles)
             pruned = self._pruned_reasons(s, profile)
