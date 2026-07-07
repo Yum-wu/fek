@@ -296,6 +296,12 @@ def main():
     kernel = get_kernel()
     show_telemetry(kernel)
 
+    # 学习开关：关闭即回到「纯阈值规则」，用于直观对比「纯规则 vs 学习后」
+    learning_on = st.sidebar.checkbox(
+        "启用学习（Learning Optimizer）", value=kernel.policy.learning
+    )
+    kernel.policy.learning = learning_on
+
     tab_auto, tab_battle = st.tabs(["自动（系统决策）", "对战（三种策略全跑）"])
 
     with tab_auto:
@@ -311,6 +317,9 @@ def main():
             # 用指标行替代原始 summary 字符串
             _show_result_summary(result)
             st.markdown(f"**策略决策：** {kernel.policy.explain(result.complexity_score)}")
+            with st.expander("学习洞察（Learning Optimizer）"):
+                st.caption("每复杂度档下三臂的平均奖励 / 样本数（学习后策略凭此决策）")
+                st.code(kernel.policy.explain(result.complexity_score, result.complexity))
             show_pipeline(result)
             show_graph(result, kernel)
             show_nodes(result)

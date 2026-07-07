@@ -11,11 +11,19 @@ import time
 
 from ..core.types import Completion
 from .backend import LLMBackend
+from ..cost import estimate_cost_usd
 
-# 默认定价表（每次调用美元），仅用于演示成本估算
+# 每次调用固定估算（tiktoken 缺失时的回退，单位：美元/次）
 _DEFAULT_PRICING = {
     "gpt-4o": 0.005,
     "gpt-4o-mini": 0.0002,
+    "gpt-3.5-turbo": 0.0005,
+}
+
+# 每 1k token 真实单价（tiktoken 可用时启用真实计费，单位：美元/1k token）
+_TOKEN_PRICING_PER_1K = {
+    "gpt-4o": 0.005,
+    "gpt-4o-mini": 0.00015,
     "gpt-3.5-turbo": 0.0005,
 }
 
@@ -49,5 +57,9 @@ class OpenAIBackend(LLMBackend):
         )
         latency = (time.time() - t0) * 1000.0
         content = resp.choices[0].message.content or ""
-        # 成本近似：为简化演示，按每次调用固定价估算
-        return Completion(content=content, model=m, latency_ms=latency, cost_usd=self._pricing)
+        # 真实成本：tiktoken 可用时按 token 计费（cost 信号更可信）；
+        # 否则回退每次调用固定估算（功能不退化）
+        cost = estimate_cost_usd(prompt, content, m, _TOKEN_PRICING_PER_1K.get(m))
+        if cost is None:
+            cost = self._pricing
+        return Completion(content=content, model=m, latency_ms=latency, cost_usd=cost)

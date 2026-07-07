@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 from .bandit import ContextualBandit
+from .learner import Learner, create_learner
 from .persist import load, reset, save
 from .reward import (
     DEFAULT_LAMBDA,
@@ -18,6 +19,8 @@ from .reward import (
 
 __all__ = [
     "ContextualBandit",
+    "Learner",
+    "create_learner",
     "compute_reward",
     "save",
     "load",

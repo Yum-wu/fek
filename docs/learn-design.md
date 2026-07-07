@@ -1,5 +1,11 @@
 # FEK `learn()` 真实最小实现 —— 设计与规划
 
+> **实现状态（2026-07-07）**：本文档规划的 v1 学习层已落地（`fek/learning/`：bandit + reward + persist），v2 Learning Optimizer 也已实现（见 RFC 0009 与 `docs/roadmap.md`）：
+> - 可切换 `Learner` 协议 + `create_learner` 工厂（默认 ε-greedy，LinUCB 预留）；
+> - 可选 `tiktoken` 真实 token 成本（`fek/cost`，真实模式 `OpenAIBackend` 接入）；
+> - 离线回测进 CI（`fek/learning/backtest.py` + `tests/test_backtest.py`）。
+> 本文档保留作为原始设计记录，新决策以 RFC / roadmap 为准。
+
 > 目标：把 `fek/policy/engine.py` 里目前只是"质量阈值漂移"的 `learn()` 桩，升级为**真正能从执行轨迹学习的自适应策略层**，让路线图 v2（策略学习）不再是空头支票。
 > 原则（沿用 Rapid Prototyper 作风）：零依赖、mock 可离线演示、可解释、可量化、不碰过度工程。
 

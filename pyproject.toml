@@ -34,6 +34,7 @@ Documentation = "https://github.com/Yum-wu/fek#readme"
 [project.optional-dependencies]
 ui = ["streamlit>=1.30", "graphviz>=0.20"]
 openai = ["openai>=1.0"]
+cost = ["tiktoken>=0.5"]  # 可选：真实模式按 token 计费（核心仍零依赖）
 dev = ["pytest>=8.0"]
 
 [tool.setuptools.packages.find]

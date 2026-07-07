@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from ..core.types import Complexity, Strategy
 from ..learning.bandit import ContextualBandit
+from ..learning import create_learner
 from ..learning.persist import load as _load_policy, save as _save_policy
 from ..learning.reward import DEFAULT_LAMBDA, DEFAULT_MU, compute_reward
 
@@ -29,6 +30,7 @@ class PolicyEngine:
         reward_lambda: float = DEFAULT_LAMBDA,
         reward_mu: float = DEFAULT_MU,
         bandit: ContextualBandit | None = None,
+        learner_name: str = "epsilon_greedy",
         state_path: str | None = DEFAULT_STATE_PATH,
     ):
         self.low = low_threshold
@@ -41,8 +43,8 @@ class PolicyEngine:
         self.reward_mu = reward_mu
         # 三臂：SINGLE / MULTI_AGENT / MOA
         self.arms = list(Strategy)
-        # 优先用外部传入的 bandit；否则新建（并尝试从磁盘加载已学参数）
-        self.bandit = bandit or ContextualBandit(epsilon=epsilon)
+        # 优先用外部传入的 bandit；否则通过 learner 工厂构建（满足 RFC 0009「可切换」）
+        self.bandit = bandit or create_learner(learner_name, epsilon=epsilon)
         if state_path:
             loaded = _load_policy(state_path)
             if loaded is not None:

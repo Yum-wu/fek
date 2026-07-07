@@ -24,14 +24,16 @@
 
 **交付标准**：开发者 `pip install fek`（mock 模式）一条命令跑通；每个决策可 `explain()`；遥测能并排三策略成本/质量。
 
-### v2 · Learning Optimizer（近期，下一个里程碑）
+### v2 · Learning Optimizer（近期，下一个里程碑）—— 已实现 ✅
 **目标**：把"从轨迹学习"从 demo 升级为可信产品能力。
 
-- [ ] Policy Engine 学习从 ε-greedy 升级到可切换（保留 ε-greedy 默认，预留 LinUCB）
-- [ ] 真实成本信号：接 tokenizer 做真实 token 计费（可选依赖），让奖励可信
-- [ ] 学习可开关 + 可回测：Web UI / API 对比"纯规则 vs 学习后"
-- [ ] 学习洞察面板：每臂平均奖励 / 样本数 / 成本-质量散点
-- [ ] 离线回测成为 CI 可跑的基准（证明学习后不劣于固定阈值）
+- [x] Policy Engine 学习从 ε-greedy 升级到可切换（默认 ε-greedy；`create_learner` 工厂 + `Learner` 协议；LinUCB 预留为 v2.1）
+- [x] 真实成本信号：可选 `tiktoken` 按 token 计费（`fek/cost`，未装则回退固定估算；核心仍零依赖）
+- [x] 学习可开关 + 可回测：Web UI 勾选「启用学习」对比"纯规则 vs 学习后"
+- [x] 学习洞察面板：Web 展示每臂平均奖励 / 样本数
+- [x] 离线回测成为 CI 可跑的基准（`tests/test_backtest.py` 断言学习后不劣于固定阈值）
+
+> 实现细节见 RFC 0009 · Learning Optimizer。
 
 **交付标准**：真实模式下学习后策略在 cost-quality Pareto 上优于固定阈值（有基准证明）；学习行为可解释、可关闭。
 
