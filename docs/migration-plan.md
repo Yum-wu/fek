@@ -25,18 +25,18 @@
 
 ---
 
-## 阶段 1 · 建立 RFC 流程（立即，治理动作）
+## 阶段 1 · 建立 RFC 流程（已完成 ✅）
 
-- [ ] 在 `CONTRIBUTING.md` 增加 "RFC-Driven Development" 章节，链接 `docs/rfcs/README.md`。
-- [ ] 任何后续"重大设计"（新增策略类型、新增模块、改 Policy Engine 接口、改 Compute Graph 结构）**必须先开 RFC PR**，评审合并后再写代码。
-- [ ] 在 PR 模板（`.github/PULL_REQUEST_TEMPLATE.md`）加勾选项："本 PR 是否需 RFC？如是，RFC 链接？"
-- [ ] 代码评审时，无 RFC 的重大设计 PR 打回。
+- [x] 在 `CONTRIBUTING.md` 增加 "RFC-Driven Development" 章节，链接 `docs/rfcs/README.md`。
+- [x] 任何后续"重大设计"（新增策略类型、新增模块、改 Policy Engine 接口、改 Compute Graph 结构）**必须先开 RFC PR**，评审合并后再写代码。
+- [x] 在 PR 模板（`.github/PULL_REQUEST_TEMPLATE.md`）加勾选项："本 PR 是否需 RFC？如是，RFC 链接？"
+- [x] 代码评审时，无 RFC 的重大设计 PR 打回。
 
 **Rationale**：FEK 现在代码量小但概念多，早立 RFC 流程可避免术语/抽象再次漂移。
 
 ---
 
-## 阶段 2 · 代码命名对齐（待 RFC 合并后执行）
+## 阶段 2 · 代码命名对齐（已完成 ✅）
 
 > ⚠️ 下列为**计划**，执行前需对应 RFC 评审通过。不要在无 RFC 情况下批量重命名（会破坏 CI 与 import）。
 
@@ -53,21 +53,21 @@
 
 ---
 
-## 阶段 3 · 诚实化（与阶段 2 并行，低成本）
+## 阶段 3 · 诚实化（已完成 ✅）
 
-- [ ] README "已实现" 区给 `Evaluation` 标 "启发式占位"，给 mock 学习标 "方法演示"。
-- [ ] `docs/learn-design.md` 第 7 节诚实声明在 README 顶部附近可见。
-- [ ] `Task Profiler` 最弱一环写入 README "已知限制"。
-- [ ] 移除 pyproject `hackathon` keyword。
+- [x] README "已实现" 区给 `Evaluation` 标 "启发式占位"，给 mock 学习标 "方法演示"。
+- [x] `docs/learn-design.md` 第 7 节诚实声明在 README 顶部附近可见。
+- [x] `Task Profiler` 最弱一环写入 README "已知限制"。
+- [x] 移除 pyproject `hackathon` keyword。
 
 ---
 
-## 阶段 4 · Product v2（Learning Optimizer，下一个真实里程碑）
+## 阶段 4 · Product v2（Learning Optimizer，已完成 ✅）
 
-见 `docs/roadmap.md` v2。需 RFC 补充：0003 policy-engine 学习部分扩展（LinUCB 切换）、可选 tokenizer 依赖 RFC。
-- [ ] 真实成本信号（tokenizer，可选依赖）
-- [ ] 学习可开关 + 回测进 CI
-- [ ] 学习洞察面板
+见 `docs/roadmap.md` v2 与 RFC 0009（已 Accepted 并实现）。
+- [x] 真实成本信号（tokenizer，可选依赖 tiktoken，懒加载，未装回退固定估算）
+- [x] 学习可开关 + 回测进 CI（`fek/learning/backtest.py` + `tests/test_backtest.py`）
+- [x] 学习洞察面板（Web 侧栏开关 + 每臂平均奖励/样本数）
 
 ---
 
@@ -86,7 +86,7 @@
 2. 代码术语与 `docs/terminology.md` 一致（Compute Graph / Evaluation / Task Profiler）。
 3. 任何新重大设计均有 RFC。
 4. README 30 秒能讲清：问题 → 方案 → Demo → 架构 → 路线图。
-5. 30 测试全过、CI 绿。
+5. 32 测试全过（含回测基准 `test_backtest`）、CI 绿（Python 3.10–3.13 矩阵 + 冒烟测试）。
 
 ---
 
