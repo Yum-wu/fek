@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "fek"
 version = "0.1.0"
-description = "FEK · Adaptive AI Execution Engine —— 为每个 AI 任务自动选择并运行最优执行策略，并在成本/质量/延迟上持续学习优化。"
+description = "FEK · Adaptive AI Compute Optimizer —— 在质量、成本、延迟、隐私等约束下自动选择并运行最优的 AI 计算策略，并从运行反馈中持续学习优化。"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-keywords = ["llm", "ai-execution", "execution-engine", "policy-engine", "multi-agent", "moa", "cost-aware", "adaptive"]
+keywords = ["llm", "compute-optimizer", "policy-optimizer", "constraint-aware", "multi-agent", "moa", "cost-aware", "adaptive"]
 authors = [{ name = "FEK Contributors" }]
 maintainers = [{ name = "FEK Contributors" }]
 classifiers = [

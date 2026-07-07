@@ -83,16 +83,28 @@ streamlit run web/app.py              # http://localhost:8501
 
 ```python
 from fek import FEKKernel
+from fek.core.types import Constraints
+from fek.learning import create_learner
 
-kernel = FEKKernel()                       # 默认 mock 后端，零 API key
-result = kernel.run("对比 Python 和 Go 做后端服务")
-print(result.summary())
-# [混合专家（MoA）] 复杂度=高（high）(0.82) | 节点数=5 | 融合=True | ...
-print(kernel.policy.explain(result.complexity_score))
-# 为什么选这个策略：基于复杂度与历史学习偏好
+# ① 默认 mock 后端，零 API key；无约束走原复杂度驱动管线（向后兼容）
+kernel = FEKKernel()
+r1 = kernel.run("对比 Python 和 Go 做后端服务")
+print(r1.summary())
+
+# ② 约束感知（Pivot 已落地）：FEK 在约束下自动选最优策略
+r2 = kernel.run(
+    "写一份本地隐私报告",
+    constraints=Constraints(privacy="local_only", min_quality=0.8),
+)
+print(r2.summary())
+
+# ③ 约束感知学习闭环（v2 已落地，可选开启）：从运行反馈持续学习策略偏好
+kernel_l = FEKKernel(learner=create_learner())
 ```
 
-> 注：上例展示**当前 v1 内核 API**（以复杂度画像驱动策略选择）。战略定位重构（RFC 0010/0011/0012）将把输入模型升级为 `Task + Constraints`、把 `Policy Engine` 演进为以 `ConstraintProfile` 为输入的 **Policy Optimizer**、并引入 **Strategy Library**；策略选择的核心逻辑不变，调用方式向后兼容。详见 `docs/roadmap.md` 与 `docs/migration-plan.md`。
+> 无约束调用 `run(prompt)` 与历史 Demo / 测试完全兼容；带 `constraints=` 时自动切换为
+> `Constraint Analysis → Policy Optimizer → Strategy Library` 新管线。详见
+> `examples/constrained_demo.py` 与 `examples/constraint_learning_demo.py`。
 
 **真实 LLM（可选）**：设置 `FEK_MODE=openai` + `OPENAI_API_KEY` 即可接入 OpenAI 兼容端点（包括 Ollama / vLLM / OpenRouter）。详见 `.env.example`。
 
