@@ -19,6 +19,8 @@
 
 > FEK 的视角是 **Optimization Thinking**，不是 Framework Thinking：我们不比"支持多少 Agent / 多少 MoA"，而是保证"在约束下总能选到最划算的策略"。新出的推理策略会被吸收为可插拔 Strategy，FEK 自身始终停留在更高的策略优化抽象上。
 
+📚 **完整文档导航**：[docs/README.md](docs/README.md) —— 定位 / 架构 / 战略 / 生态 / RFC 一站直达。
+
 ---
 
 ## 1. 为什么需要 FEK（Why FEK）
