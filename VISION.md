@@ -1,28 +1,45 @@
 # VISION · FEK
 
-> **FEK = Adaptive AI Execution Engine（自适应 AI 执行引擎）**
-> 核心职责一句话：**为每个 AI 任务自动决定"用哪种执行策略最划算"。**
+> **FEK = Adaptive AI Compute Optimizer（自适应 AI 计算优化器）**
+> 一句话定位：**在质量、成本、延迟、隐私等约束下，自动为任务选择最优的 AI 计算策略。**
 
 ---
 
 ## 1. FEK 是什么
 
-FEK 是一个**执行引擎**：你提交一个任务（一段自然语言指令），它自动判断该任务的复杂度，选择一个执行策略——单模型一次调用、规划+批判的多智能体、还是混合专家（MoA）融合——把这个策略编译成一张计算图（Compute Graph），交给运行时执行，并从每次执行的成本/延迟/质量遥测中持续学习、优化未来的策略选择。
+FEK 是一个 **AI 计算优化层（AI Compute Optimization Layer）**。
 
-FEK 不要求你写 Agent、不要求你编排工作流、不要求你选模型。你只提交任务，它决定**怎么执行**。
+你提交一个**任务**和一组**约束**（期望质量、预算上限、延迟上限、隐私要求、可接受的模型清单），FEK 自动：
+
+1. **分析约束**（Constraint Analysis）——把约束规范化、做可行性检查、按隐私/偏好过滤可用模型；
+2. **优化策略选择**（Policy Optimizer）——在约束下从策略库中选出（或组合出）最优执行策略；
+3. **生成执行计划**（Execution Plan）——把选中的策略编译成计算图；
+4. **执行并度量**（Runtime + Telemetry）——跑、打分、记录成本/质量/延迟/隐私；
+5. **学习回流**——从每次轨迹中优化未来的选择。
+
+FEK **不要求你写 Agent、不编排工作流、不挑模型、也不发明推理策略**。你只描述"要什么"和"限制是什么"，FEK 决定"怎么算最划算"。
+
+MoA、Debate、Reflection、Tree of Thoughts 等，在 FEK 里都只是**可插拔的策略（Strategy）**，不是 FEK 自己的创新，也不是 FEK 的卖点。
 
 ---
 
-## 2. 为什么存在
+## 2. 为什么存在（第一性原理）
 
-今天构建一个"会思考的 AI 系统"，开发者被迫在两条路里选：
+过去两年，AI 基础设施快速商品化，**以下能力已不再是差异化护城河**：
 
-- **自己手写 Agent / 工作流**（LangGraph / AutoGen / CrewAI）：灵活，但每个任务都用"重"策略，成本和延迟失控，且新手很容易过度设计。
-- **直接调一个强模型**（GPT / Claude）：简单，但对简单任务浪费钱，对困难任务又不够。
+- **自动 Workflow / 动态执行流**：Claude Code 已能按任务自动生成 workflow、动态选执行流程；Cursor、Claude Code 社区已大量采用多模型协同。
+- **MoA（混合专家）**：Hermes、Together AI 已做成成熟能力。
+- **推理策略**（Debate / Reflection / Tree of Thoughts / Self-Consistency …）：已被大量论文验证，正在变成"标配积木"。
 
-两条路都缺一个东西：**一个能"看任务下菜碟"的执行层**——简单任务用便宜的单次调用，困难任务才上多智能体/MoA，并且能**量化地证明"多花的算力确实换来了更好的结果"**。
+> **结论**：继续围绕"自动 workflow"或"支持 MoA"设计 FEK，等于在 Claude Code / Hermes 的主场作战。这些能力会随新框架、新策略的出现而过时。
 
-FEK 填补的就是这一层。
+FEK 应该回答一个**更上游、更稳定**的问题：
+
+> **给定任务和约束，如何在质量 / 成本 / 延迟 / 隐私之间取得最优权衡？**
+
+这个问题不会因某个新 Agent 框架或新推理策略的出现而消失。相反，FEK 可以把所有新能力都吸收为**可插拔的策略**，自身始终停留在更高的"策略优化"抽象上。
+
+这就是从 **Framework Thinking → Optimization Thinking** 的根本转向，也是 FEK 最有长期竞争力的方向。
 
 ---
 
@@ -30,64 +47,65 @@ FEK 填补的就是这一层。
 
 | 问题 | FEK 的解法 |
 |---|---|
-| "这个任务到底该用单模型还是多智能体？" | Policy Engine 按复杂度自动选 |
-| "多智能体/MoA 是不是在瞎花钱？" | Telemetry 把 cost/latency/quality 并排，决策可解释 |
-| "系统能不能越用越聪明？" | 从执行遥测学习策略偏好（成本感知 contextual bandit） |
-| "换模型/换后端麻烦吗？" | Backend 抽象层，mock 离线可跑，OpenAI 兼容可插拔 |
-| "新人能一眼看懂吗？" | 零依赖内核 + `explain()` 把每个决策讲清楚 |
+| "这个任务该用单模型、多智能体还是 MoA？" | Policy Optimizer 在约束下自动选 |
+| "预算只有 $0.2，但质量要 High，怎么选？" | 约束感知优化：在预算内最大化质量 |
+| "数据不能出本地，能用哪些模型？" | Constraint Analysis 过滤模型、强制隐私策略 |
+| "多花的算力真的值得吗？" | Telemetry 并排对比，决策可解释、可回测 |
+| "新出的推理策略（如 ToT）怎么用上？" | 作为 Strategy 插进 Strategy Library，无需改引擎 |
 
 ---
 
 ## 4. 刻意不解决什么（Non-Goals）
 
-为避免功能蔓延，FEK **明确不做**以下事：
+为避免功能蔓延，FEK **明确不做**：
 
-- **不是 LLM Gateway**：不代理 token 级 API 调用、不做 key 管理、不做统一 API 封装。FEK 跑在 Gateway **之上**（可用 LiteLLM/OpenRouter 当后端）。
-- **不是 Agent Framework**：不提供让你组合 Agent / 写工作流的 SDK。FEK 的策略是**内部自动**决定的，用户不写 Agent。
-- **不是模型训练/微调框架**。
+- **不是 LLM Gateway**：不做 key 管理 / 统一 API 封装；FEK 跑在 Gateway 之上。
+- **不是 Agent Framework / Workflow Builder**：不提供让你组合 Agent / 写工作流的 SDK；策略是内部自动决定的。
+- **不是 MoA Framework**：MoA 只是 Strategy Library 里的一个策略，FEK 不发明 MoA。
+- **不是模型训练 / 微调框架**。
 - **不是 RAG / 向量数据库**。
-- **不是又一个 MoA 库**：MoA 只是 FEK 的多种策略之一。
-- **不是通用编排器**（如 Airflow）：FEK 只编排"AI 执行"，不编排数据管道。
+- **不是 AI OS**：不做通用调度 / 资源虚拟化。
 
 ---
 
 ## 5. 长期愿景
 
-> **让"如何执行一个 AI 任务"成为一个可被优化、可被学习、可被解释的一等公民。**
+> **让"如何在约束下最优化 AI 计算"成为一等公民：应用描述任务与约束，FEK 负责选策略、跑、学。**
 
-远期，FEK 希望成为 AI 应用与底层模型之间的**默认执行层**：
+远期，FEK 希望成为 AI 应用与模型之间的**默认计算优化层**：
 
-- 应用只描述"任务"，FEK 负责"怎么跑最划算"。
-- 执行策略从硬编码三选一，演进到**由系统从海量执行轨迹中自演化**出来的策略空间。
-- 成本/质量/延迟的帕累托前沿，由引擎自动在每次任务上求解。
+- 应用只描述"任务 + 约束"，FEK 负责"怎么算最划算"。
+- 策略库自动吸收社区新推理方法（MoA / Debate / ToT / Self-Consistency …）。
+- 约束 → 策略的帕累托前沿，由引擎在每次任务上求解。
 
 ---
 
 ## 6. 设计原则（Principles）
 
-1. **决策可解释（Explainable by default）**：每一个策略选择都必须能用 `explain()` 讲清楚"为什么"，不接受黑箱。
-2. **成本感知（Cost-aware）**：成本/延迟/质量三者同等重要，决策必须显式权衡，不默认"越多算力越好"。
-3. **零配置可跑（Zero-config runnable）**：mock 模式无需任何 API key 即可完整演示，降低一切采用摩擦。
-4. **分层可替换（Composable layers）**：Task Profiler / Policy Engine / Graph Compiler / Runtime / Fusion / Evaluation / Telemetry 各层职责单一、接口稳定、可独立替换。
-5. **学习可回测（Learnable & auditable）**：学习层的改动必须能离线回测对比，否则只是噱头。
-6. **诚实（Honest）**：演示性质的能力（如 mock 学习）必须明确标注，不夸大。
+1. **Optimization-first**：对外沟通讲"在约束下优化"，不讲"支持多少 Agent / 多少 MoA / 多少 Workflow"。
+2. **Constraint-aware**：约束是一等输入，不是事后过滤；冲突时主动协商，而非静默降级。
+3. **Strategy-agnostic**：MoA / Debate / ToT 都是可插拔 Strategy，引擎不绑定任一；新策略即插即用。
+4. **可解释（Explainable）**：每个选择都能讲清"为什么、在哪些约束下、预期权衡是什么"。
+5. **零配置可跑（Zero-config）**：mock 模式无需 API key 即可完整演示。
+6. **学习可回测（Learnable & auditable）**：学习改动必须能离线回测对比，否则只是噱头。
+7. **诚实（Honest）**：演示性质能力必须明确标注，不夸大。
 
 ---
 
-## 7. 非目标边界（与路线图的关系）
+## 7. 非目标边界（与路线图关系）
 
-- **Product Roadmap**（见 `docs/roadmap.md`）：v1 Adaptive Runtime、v2 Learning Optimizer——近期、可交付、可验证。
-- **Research Roadmap**（见 `docs/roadmap.md`）：Self-Evolving Execution、Autonomous Kernel——探索性、依赖研究突破、**不承诺交付时间**。
+- **Product Roadmap**（见 `docs/roadmap.md`）：v1 Constraint-aware Optimizer、v2 Constraint-aware Policy Learning——近期、可交付、可验证。
+- **Research Roadmap**（见 `docs/roadmap.md`）：约束协商、策略自组合、更好约束理解、LLM 裁判——探索性、**不承诺交付时间**。
 
 ---
 
 ## 8. 未来演进（方向，非承诺）
 
-- 更好的 Task Profiling（嵌入相似度 / 历史任务检索 / LLM 自评复杂度）。
+- Strategy Library 自动吸收新论文（MoA / Debate / ToT / Self-Consistency / Graph-of-Thoughts …）。
+- 约束可行性检测与协商（预算 / 质量 / 延迟冲突时主动提案）。
 - 真实 LLM 裁判（LLM-as-judge）替代玩具质量启发式。
 - 真实 token 计费（接 tokenizer），让成本信号可信。
-- 策略空间从三选一扩展到可组合的策略原语（debate / reflection / branching）。
-- 可选依赖层：在保持内核零依赖的同时，允许"进阶能力"按需安装。
+- 约束理解从关键词启发式升级到嵌入 / 检索 / LLM 自评。
 
 ---
 

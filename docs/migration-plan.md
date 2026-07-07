@@ -1,6 +1,7 @@
 # FEK 迁移计划（Actionable Migration Plan）
 
-> 把"黑客松 Demo（Fusion Execution Kernel）"迁移到"Adaptive AI Execution Engine + RFC 驱动开发"。
+> 把"黑客松 Demo（Fusion Execution Kernel）"迁移到"Adaptive AI Execution Engine + RFC 驱动开发"（阶段 0–5，已全部完成 ✅）。
+> 后续战略定位重构（Pivot，RFC 0010/0011/0012）将定位演进为 **Adaptive AI Compute Optimizer**，其代码落地见 **阶段 6**（当前未执行，待 RFC 合并后按计划推进）。
 > 本文档是**可执行清单**，按阶段排序。所有代码重命名必须先有对应 RFC 合并。
 
 ---
@@ -79,11 +80,46 @@
 
 ---
 
+## 阶段 6 · 战略定位重构（Pivot）代码落地（待 RFC 合并后执行）
+
+> 对应 RFC：**0010** positioning-pivot（取代 0001/0002）、**0011** constraint-policy-optimizer（取代 0003）、**0012** strategy-library。
+> 以下为**计划**，未执行。当前内核仍以"复杂度画像 + Policy Engine"运行（v1），本阶段把它演进为"约束感知 + Policy Optimizer + Strategy Library"。
+
+### 6.1 新增 `Constraints` / `ConstraintProfile` 数据模型（RFC 0011）
+- [ ] `fek/core/types.py` 新增 `Constraints`（quality / budget / latency / privacy / preferred_models 字段）与 `ConstraintProfile`（归一化后的约束画像）。
+- [ ] `Task` 增加可选 `constraints: Constraints | None` 字段（向后兼容，旧调用不传约束走默认）。
+- [ ] 影响：`fek/__init__.py`、`kernel.py` 的 `run()` 签名与文档字符串。
+
+### 6.2 新增 Constraint Analysis 模块（RFC 0011）
+- [ ] 新建 `fek/constraint/`：`analyzer.py` 实现 `(Task, Constraints) -> ConstraintProfile`，含归一化、可行性校验（约束冲突告警）、模型筛选（按 privacy / preferred_models 过滤候选后端）。
+- [ ] 单测 `tests/test_constraint.py`：覆盖"无约束回退默认画像""预算+延迟硬约束裁剪""隐私=local 仅留本地模型"等路径。
+
+### 6.3 Policy Engine → Policy Optimizer 演进（RFC 0011）
+- [ ] `fek/policy/engine.py`：`select_strategy` 的输入由 `complexity_score` 改为 `ConstraintProfile`；硬约束（budget/latency/privacy）作为不可违反的剪枝条件，软目标（quality）作为优化目标。
+- [ ] 保留可解释 `explain()`，输出新增"约束满足情况"维度。
+- [ ] `PolicyEngine` 类名可保留为别名，对外逐步引导至 `PolicyOptimizer`（向后兼容，不破坏现有 demo）。
+
+### 6.4 新增 Strategy Library 模块（RFC 0012）
+- [ ] 新建 `fek/strategies/`：定义 `Strategy` 协议（`name` / `cost_tier` / `supports(profile)` / `build(task, constraints, models) -> ComputeGraph`）。
+- [ ] 内置 8 个策略（均源自已有论文 / 项目，FEK 适配不重造）：`Single` / `PlannerPlusReviewer` / `Reflection` / `Debate` / `TreeOfThoughts` / `MoA` / `Parallel` / `Hierarchical`。
+- [ ] `MoA` 由"核心叙事"降为 Strategy Library 中一个普通策略；现有 `fek/fusion/` 逻辑下沉为其 `build()` 的实现细节。
+- [ ] 单测 `tests/test_strategies.py`：每个策略 `supports()` 与 `build()` 产出合法 Compute Graph。
+
+### 6.5 接线与文档
+- [ ] `kernel.py`：pipeline 改为 `Task+Constraints → Constraint Analysis → Policy Optimizer → Strategy Library → Compute Graph → Runtime → Telemetry → Learning`。
+- [ ] 更新 `examples/` 增加带约束的调用示例；`web/app.py` 增加约束输入控件。
+- [ ] 更新 `docs/architecture.md` / `docs/terminology.md` 中的代码路径映射表。
+
+**执行顺序建议**：6.1（数据模型）→ 6.2（Constraint Analysis）→ 6.3（Policy Optimizer）→ 6.4（Strategy Library）→ 6.5（接线）。
+每步：一个 PR 完成 + 全量 `python -m unittest` 通过 + 更新文档引用。**不破坏零依赖核心**（约束分析/策略库均为纯标准库实现）。
+
+---
+
 ## 验收标准（Definition of Done）
 
 迁移完成当：
-1. 仓库对外统一称 "Adaptive AI Execution Engine"，无 "Fusion Execution Kernel" 残留（除历史文档横幅）。
-2. 代码术语与 `docs/terminology.md` 一致（Compute Graph / Evaluation / Task Profiler）。
+1. 仓库对外统一称 "Adaptive AI Compute Optimizer"（Pivot 后，RFC 0010），无 "Fusion Execution Kernel" 残留（除历史文档横幅）；"Adaptive AI Execution Engine" 视为过渡定位，不主动使用。
+2. 代码术语与 `docs/terminology.md` 一致（Compute Graph / Evaluation / Task Profiler / Constraint Analysis / Policy Optimizer / Strategy Library）。
 3. 任何新重大设计均有 RFC。
 4. README 30 秒能讲清：问题 → 方案 → Demo → 架构 → 路线图。
 5. 32 测试全过（含回测基准 `test_backtest`）、CI 绿（Python 3.10–3.13 矩阵 + 冒烟测试）。

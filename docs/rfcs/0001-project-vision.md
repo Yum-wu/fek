@@ -1,9 +1,9 @@
 # RFC 0001 · Project Vision
 
-- 状态：Accepted
+- 状态：Superseded（被 0010 positioning-pivot 取代）
 - 作者：Yum-wu
 - 日期：2026-07-07
-- 关联：VISION.md, docs/architecture.md
+- 关联：VISION.md, docs/architecture.md, 0010 positioning-pivot
 
 ## Background
 

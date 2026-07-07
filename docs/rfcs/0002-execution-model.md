@@ -1,9 +1,9 @@
 # RFC 0002 · Execution Model
 
-- 状态：Accepted
+- 状态：Superseded（被 0010 positioning-pivot 取代）
 - 作者：Yum-wu
 - 日期：2026-07-07
-- 关联：docs/architecture.md, 0003-policy-engine, 0004-compute-graph
+- 关联：docs/architecture.md, 0003-policy-engine, 0004-compute-graph, 0010 positioning-pivot
 
 ## Background
 
