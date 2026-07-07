@@ -1,24 +1,24 @@
 """执行运行时（Execution Runtime）。
 
 按拓扑顺序遍历编译好的 DAG，对每个节点调用后端；遇到融合节点则执行 MoA 融合，
-并通过反思层对质量打分。这正是 FEK 愿景中的"执行运行时（Go）"——此处为了
+并通过评估层对质量打分。这正是 FEK 愿景中的"执行运行时（Go）"——此处为了
 黑客松的开发速度用 Python 实现，但职责划分保持一致。
 """
 
 from __future__ import annotations
 
-from ..core.graph import ExecutionGraph
+from ..core.graph import ComputeGraph
 from ..core.types import NodeResult, Task
 from ..fusion import fuse
 from ..models.backend import LLMBackend
-from ..reflection import score_quality
+from ..evaluation import score_quality
 
 
 class Executor:
     def __init__(self, backend: LLMBackend):
         self.backend = backend
 
-    def run(self, task: Task, graph: ExecutionGraph) -> tuple[list[NodeResult], str, bool]:
+    def run(self, task: Task, graph: ComputeGraph) -> tuple[list[NodeResult], str, bool]:
         results: list[NodeResult] = []
         outputs: dict[str, str] = {}
 

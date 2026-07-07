@@ -285,11 +285,11 @@ def _show_result_summary(result):
 
 
 def main():
-    st.set_page_config(page_title="FEK —— 融合执行内核", layout="wide")
+    st.set_page_config(page_title="FEK —— 自适应 AI 执行引擎", layout="wide")
     mode = os.getenv("FEK_MODE", "mock")
-    st.title("⚡ FEK —— 融合执行内核")
+    st.title("⚡ FEK —— 自适应 AI 执行引擎")
     st.caption(
-        f"自适应多模型执行内核 · 模式：**{mode}** · "
+        f"自适应 AI 执行引擎 · 模式：**{mode}** · "
         "FEK 架构的 v0/v1 黑客松 Demo"
     )
 

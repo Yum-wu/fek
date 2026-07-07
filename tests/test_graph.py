@@ -1,20 +1,20 @@
 import unittest
 
-from fek.core.graph import ExecutionGraph, GraphNode
+from fek.core.graph import ComputeGraph, GraphNode
 from fek.core.types import Strategy, Task
 from fek.compiler import GraphBuilder
 
 
 class TestGraph(unittest.TestCase):
     def test_topological_order(self):
-        g = ExecutionGraph()
+        g = ComputeGraph()
         g.add(GraphNode("a", "solver", "llm"))
         g.add(GraphNode("b", "critic", "llm").with_dep("a"))
         order = g.topological_order()
         self.assertEqual(order, ["a", "b"])
 
     def test_cycle_detection(self):
-        g = ExecutionGraph()
+        g = ComputeGraph()
         g.add(GraphNode("a", "x", "llm").with_dep("b"))
         g.add(GraphNode("b", "y", "llm").with_dep("a"))
         with self.assertRaises(ValueError):

@@ -1,4 +1,4 @@
-"""复杂度分类器（v1：启发式；v2 起可接入学习权重）。
+"""任务画像器（Task Profiler，v1：启发式；v2 起可接入学习权重）。
 
 将一段自由文本任务转化为 [0, 1] 区间内的归一化复杂度评分。启发式信号包括：
 提示词长度、推理类关键词、对比/"vs" 措辞、多步骤类词汇。刻意保持简单且透明，
@@ -33,7 +33,7 @@ _SIGNALS = {
 }
 
 
-class ComplexityClassifier:
+class TaskProfiler:
     def __init__(self, length_weight: float = 0.0008):
         self.length_weight = length_weight
 

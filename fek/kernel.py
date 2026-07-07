@@ -1,7 +1,7 @@
-"""FEK 内核 —— 唯一的编排入口。
+"""FEK —— 唯一的编排入口（Adaptive AI Execution Engine）。
 
 流水线（与 FEK 统一架构一致）：
-    Task -> Classifier -> Policy Engine -> Graph Compiler -> Runtime -> Fusion -> Reflection
+    Task -> Task Profiler -> Policy Engine -> Graph Compiler -> Runtime -> Fusion -> Evaluation
 并将每次运行结果送入遥测层，以支撑"成本感知"的叙事。
 
 用法：
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import uuid
 
-from .classifier import ComplexityClassifier
+from .profiler import TaskProfiler
 from .compiler import GraphBuilder
 from .core.types import Complexity, ExecutionResult, Strategy, Task
 from .models import LLMBackend, MockBackend, from_env
@@ -33,7 +33,7 @@ class FEKKernel:
         telemetry_log: str | None = None,
         learning: bool = True,
     ):
-        self.classifier = ComplexityClassifier()
+        self.profiler = TaskProfiler()
         self.policy = policy or PolicyEngine(learning=learning)
         self.builder = GraphBuilder()
         self.backend = backend or from_env()
@@ -43,8 +43,8 @@ class FEKKernel:
     def run(self, prompt: str, task_id: str | None = None) -> ExecutionResult:
         # 自动模式：由系统根据复杂度自主选择策略
         task = Task(id=task_id or uuid.uuid4().hex[:8], prompt=prompt)
-        score = self.classifier.score(prompt)
-        band = self.classifier.classify(prompt)
+        score = self.profiler.score(prompt)
+        band = self.profiler.classify(prompt)
         strategy = self.policy.select(score)
         graph = self.builder.build(strategy, task)
         node_results, final_output, fused = self.executor.run(task, graph)
@@ -77,8 +77,8 @@ class FEKKernel:
     def _run_fixed(self, strategy: Strategy, prompt: str) -> ExecutionResult:
         # 强制使用指定策略执行（绕过自动选择）
         task = Task(id=uuid.uuid4().hex[:8], prompt=prompt)
-        score = self.classifier.score(prompt)
-        band = self.classifier.classify(prompt)
+        score = self.profiler.score(prompt)
+        band = self.profiler.classify(prompt)
         graph = self.builder.build(strategy, task)
         node_results, final_output, fused = self.executor.run(task, graph)
         total_lat = sum(n.latency_ms for n in node_results)

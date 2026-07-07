@@ -1,7 +1,9 @@
 # FEK RFC 流程（RFC-Driven Development）
 
-> **规则：所有重大设计先写 RFC，再写代码。**
+> **规则：所有重大设计先写 RFC，再写代码。**  
 > 代码量小但概念多，早立流程可避免术语/抽象再次漂移。
+
+
 
 ---
 
@@ -37,11 +39,11 @@ RFC（Request for Comments）= 一份**设计提案文档**，在写代码前描
 
 ## 状态机
 
-| 状态 | 含义 |
-|---|---|
-| `Proposed` | 已开 PR，等待评审 |
-| `Accepted` | 评审通过，可落地代码 |
-| `Rejected` | 评审否决，记录原因 |
+| 状态           | 含义                 |
+| ------------ | ------------------ |
+| `Proposed`   | 已开 PR，等待评审         |
+| `Accepted`   | 评审通过，可落地代码         |
+| `Rejected`   | 评审否决，记录原因          |
 | `Superseded` | 被更新的 RFC 取代（注明新编号） |
 
 状态写在 RFC 顶部元数据。
@@ -74,19 +76,19 @@ RFC（Request for Comments）= 一份**设计提案文档**，在写代码前描
 2. **评审**：至少 1 名核心维护者 review；讨论在 PR 评论区。
 3. **合并或否决**：合并 = `Accepted`；关闭 PR = `Rejected`（留记录）。
 4. **实现**：`Accepted` 后才允许写对应代码；实现 PR 必须链接 RFC。
-5. ** supersede**：若提案被新 RFC 取代，旧 RFC 状态改 `Superseded` 并注明新编号。
+5. \*\* supersede\*\*：若提案被新 RFC 取代，旧 RFC 状态改 `Superseded` 并注明新编号。
 
 ---
 
 ## 当前 RFC 索引
 
-| 编号 | 标题 | 状态 |
-|---|---|---|
-| 0001 | Project Vision | Accepted |
+| 编号   | 标题              | 状态       |
+| ---- | --------------- | -------- |
+| 0001 | Project Vision  | Accepted |
 | 0002 | Execution Model | Accepted |
-| 0003 | Policy Engine | Accepted |
-| 0004 | Compute Graph | Accepted |
-| 0005 | Runtime | Accepted |
-| 0006 | Fusion Engine | Accepted |
-| 0007 | Evaluation | Accepted |
-| 0008 | Roadmap | Accepted |
+| 0003 | Policy Engine   | Accepted |
+| 0004 | Compute Graph   | Accepted |
+| 0005 | Runtime         | Accepted |
+| 0006 | Fusion Engine   | Accepted |
+| 0007 | Evaluation      | Accepted |
+| 0008 | Roadmap         | Accepted |

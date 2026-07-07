@@ -22,7 +22,7 @@ def main() -> None:
         "需兼顾一致性、延迟与运维成本。",
     ]
     print("=" * 70)
-    print("FEK —— 融合执行内核  （mock 模式，离线）")
+    print("FEK —— 自适应 AI 执行引擎  （mock 模式，离线）")
     print("=" * 70)
     for prompt in tasks:
         print(f"\n任务：{prompt}")

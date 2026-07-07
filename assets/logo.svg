@@ -24,7 +24,7 @@
   <text x="230" y="212" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="104" font-weight="800" fill="#ffffff">FEK</text>
 
   <!-- 副标题 -->
-  <text x="86" y="262" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="32" font-weight="600" fill="url(#accent)">Fusion Execution Kernel · 融合执行内核</text>
+  <text x="86" y="262" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="32" font-weight="600" fill="url(#accent)">Adaptive AI Execution Engine · 自适应 AI 执行引擎</text>
 
   <!-- 说明 -->
   <text x="86" y="306" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="21" fill="#cbd5e1">一个任务，自动选出最优多模型计算图 —— 并持续权衡成本 / 延迟 / 质量</text>

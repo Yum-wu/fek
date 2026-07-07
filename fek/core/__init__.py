@@ -7,7 +7,7 @@ from .types import (
     Strategy,
     Task,
 )
-from .graph import ExecutionGraph, GraphNode
+from .graph import ComputeGraph, GraphNode
 
 __all__ = [
     "Complexity",
@@ -16,6 +16,6 @@ __all__ = [
     "NodeResult",
     "Strategy",
     "Task",
-    "ExecutionGraph",
+    "ComputeGraph",
     "GraphNode",
 ]

@@ -1,4 +1,4 @@
-"""执行图（DAG）数据结构 + 序列化辅助方法。"""
+"""计算图（Compute Graph，DAG）数据结构 + 序列化辅助方法。"""
 
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ class GraphNode:
 
 
 @dataclass
-class ExecutionGraph:
+class ComputeGraph:
     nodes: Dict[str, GraphNode] = field(default_factory=dict)
 
     def add(self, node: GraphNode) -> GraphNode:
@@ -79,7 +79,7 @@ class ExecutionGraph:
                     if indeg[m.id] == 0:
                         queue.append(m.id)
         if len(order) != len(self.nodes):
-            raise ValueError("执行图中检测到环")
+            raise ValueError("计算图中检测到环")
         return order
 
     def to_dot(self) -> str:

@@ -74,6 +74,8 @@ class NodeResult:
     quality: float
 
 
+# ExecutionResult 是运行时的 Execution Trace（执行轨迹）：记录一次执行的所有节点结果、
+# 最终输出与聚合指标。它与静态的 Compute Graph（计算图）区分——图是“计划”，轨迹是“记录”。
 @dataclass
 class ExecutionResult:
     task_id: str
