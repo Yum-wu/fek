@@ -143,13 +143,13 @@ Application → Constraint Analysis → Policy Optimizer → Strategy Library
 - Telemetry 是唯一的"回边"，只通过数据（trace）回流，不形成代码环。
 - `FEKKernel`（`kernel.py`）是唯一编排入口。
 
-### 5.4 与当前代码的映射（供迁移参考，不立即改代码）
+### 5.4 与当前代码的映射（pivot 阶段 6 已落地）
 
 | 新模块 | 当前路径 | pivot 动作 |
 |---|---|---|
-| Constraint Analysis | （无，新增概念） | 新增 `fek/constraint/`；`Task` 扩展 `Constraints` 字段 |
-| Policy Optimizer | `fek/policy/` `PolicyEngine` | 输入从复杂度评分改为 ConstraintProfile；目标改为约束优化 |
-| Strategy Library | （无，新增概念） | 新增 `fek/strategies/`；把 SINGLE/MULTI_AGENT/MOA 改为 Strategy 实现 |
+| Constraint Analysis | `fek/constraint/analyzer.py`（已新增） | 新增 `fek/constraint/`；`Task` 扩展 `constraints` 字段；`Constraints` / `ConstraintProfile` 落地于 `fek/core/types.py` |
+| Policy Optimizer | `fek/policy/optimizer.py`（`PolicyOptimizer`，新）+ `fek/policy/engine.py`（`PolicyEngine`，保留兼容） | 输入从复杂度评分改为 `ConstraintProfile`；硬约束剪枝 + 软目标优化；旧 `PolicyEngine` 作向后兼容别名 |
+| Strategy Library | `fek/strategies/`（已新增，8 策略） | 新增 `fek/strategies/`；`Strategy` 协议 + 8 个可插拔实现；SINGLE/MULTI_AGENT/MOA 改为 Strategy 实现，MoA 降为普通策略 |
 | Graph Compiler | `fek/compiler/` | 不变（明确语义） |
 | Compute Graph | `fek/core/graph.py` `ComputeGraph` | 不变 |
 | Runtime | `fek/runtime/` | 不变（传 constraints 给 Evaluation/Fusion） |
@@ -157,4 +157,4 @@ Application → Constraint Analysis → Policy Optimizer → Strategy Library
 | Evaluation | `fek/evaluation/` | 不变 |
 | Telemetry | `fek/telemetry/` | 不变（增加 constraints 维度） |
 
-> 所有代码改动遵循 RFC 流程，经评审合并后由 `docs/migration-plan.md` 的 pivot 阶段执行。本架构文档不修改代码。
+> pivot 代码已落地（见 `docs/migration-plan.md` 阶段 6）；旧管线（`run(prompt)` 无约束）完全保留，确保既有 Demo 与测试零改动。本文档为架构权威来源。

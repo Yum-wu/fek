@@ -18,6 +18,8 @@ _MODEL_PROFILE = {
     "gpt-fast": {"cost": 0.00010, "latency": 70},
     "gpt-smart": {"cost": 0.00090, "latency": 180},
     "claude-x": {"cost": 0.00140, "latency": 220},
+    # 本地模型：零成本、低延迟，用于满足隐私=local_only 约束的离线演示
+    "local-model": {"cost": 0.0, "latency": 60},
 }
 
 # 不同角色对应的回答模板
@@ -31,7 +33,7 @@ _ROLE_TEMPLATES = {
 
 
 class MockBackend(LLMBackend):
-    def __init__(self, seed_models: tuple[str, ...] = ("gpt-fast", "gpt-smart", "claude-x")):
+    def __init__(self, seed_models: tuple[str, ...] = ("gpt-fast", "gpt-smart", "claude-x", "local-model")):
         self.models = list(seed_models)
 
     @property

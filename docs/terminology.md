@@ -22,11 +22,11 @@
 
 | 概念 | 当前代码 | 本次建议 | 是否改动 | 理由 |
 |---|---|---|---|---|
-| 约束分析 | （无） | **Constraint Analysis** | 新增模块 | 约束是一等输入，需在优化前规范化/过滤 |
-| 约束画像 | （无） | **ConstraintProfile** | 新增数据结构 | Task + Constraints → 规范化后的约束画像 |
-| 策略优化 | `policy/` `PolicyEngine` | **Policy Optimizer** | 改名+重构 | 输入从复杂度评分改为 ConstraintProfile；目标改为约束优化。"Optimizer" 比 "Engine" 更贴"优化"本质 |
-| 策略库 | （无） | **Strategy Library** | 新增模块 | 把 MoA/Debate/ToT 等做成可插拔 Strategy |
-| 策略实现 | `Strategy` 枚举（SINGLE/MULTI_AGENT/MOA） | **Strategy（协议）+ 多个实现** | 重构 | 每个策略是一个组件，可插拔；枚举退化为实现标识 |
+| 约束分析 | `fek/constraint/analyzer.py` | **Constraint Analysis** | 已新增（v1 落地） | 约束是一等输入，需在优化前规范化/过滤 |
+| 约束画像 | `fek/core/types.py` | **ConstraintProfile** | 新增数据结构（已落地） | Task + Constraints → 规范化后的约束画像 |
+| 策略优化 | `policy/engine.py`（`PolicyEngine`，保留兼容）+ `policy/optimizer.py`（`PolicyOptimizer`，新） | **Policy Optimizer** | 已重构（新增 PolicyOptimizer；旧 PolicyEngine 作向后兼容别名） | 输入从复杂度评分改为 ConstraintProfile；目标改为约束优化 |
+| 策略库 | `fek/strategies/` | **Strategy Library** | 已新增（v1 落地） | 把 MoA/Debate/ToT 等做成可插拔 Strategy |
+| 策略实现 | `Strategy` 枚举（保留作 ExecutionResult 兼容）+ `fek/strategies/`（协议+8 实现） | **Strategy（协议）+ 多个实现** | 已重构（新增 StrategyLibrary，8 策略可插拔） | 每个策略是一个组件，可插拔；枚举保留用于遥测兼容 |
 | 复杂度估计 | `profiler/` `TaskProfiler` | **Task Profiler（仍保留，归 Constraint Analysis 用）** | 否 | 复杂度仍是有用信号，但只是 Constraint Analysis 的一部分 |
 | 图编译器 | `compiler/` | **Graph Compiler** | 否 | 不变 |
 | 图结构 | `core/graph.py` `ComputeGraph` | **Compute Graph** | 否 | 不变 |

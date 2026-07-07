@@ -80,35 +80,35 @@
 
 ---
 
-## 阶段 6 · 战略定位重构（Pivot）代码落地（待 RFC 合并后执行）
+## 阶段 6 · 战略定位重构（Pivot）代码落地（已执行 ✅）
 
 > 对应 RFC：**0010** positioning-pivot（取代 0001/0002）、**0011** constraint-policy-optimizer（取代 0003）、**0012** strategy-library。
-> 以下为**计划**，未执行。当前内核仍以"复杂度画像 + Policy Engine"运行（v1），本阶段把它演进为"约束感知 + Policy Optimizer + Strategy Library"。
+> 以下**计划已全部执行**（2026-07-07）。当前内核已演进为"约束感知 + Policy Optimizer + Strategy Library"，旧管线（`run(prompt)` 无约束）完全保留作向后兼容。
 
 ### 6.1 新增 `Constraints` / `ConstraintProfile` 数据模型（RFC 0011）
-- [ ] `fek/core/types.py` 新增 `Constraints`（quality / budget / latency / privacy / preferred_models 字段）与 `ConstraintProfile`（归一化后的约束画像）。
-- [ ] `Task` 增加可选 `constraints: Constraints | None` 字段（向后兼容，旧调用不传约束走默认）。
-- [ ] 影响：`fek/__init__.py`、`kernel.py` 的 `run()` 签名与文档字符串。
+- [x] `fek/core/types.py` 新增 `Constraints`（quality / budget / latency / privacy / preferred_models 字段）与 `ConstraintProfile`（归一化后的约束画像）。
+- [x] `Task` 增加可选 `constraints: Constraints | None` 字段（向后兼容，旧调用不传约束走默认）。
+- [x] 影响：`fek/__init__.py`、`kernel.py` 的 `run()` 签名与文档字符串；`ExecutionResult` 增加可选 `constraints` 字段。
 
 ### 6.2 新增 Constraint Analysis 模块（RFC 0011）
-- [ ] 新建 `fek/constraint/`：`analyzer.py` 实现 `(Task, Constraints) -> ConstraintProfile`，含归一化、可行性校验（约束冲突告警）、模型筛选（按 privacy / preferred_models 过滤候选后端）。
-- [ ] 单测 `tests/test_constraint.py`：覆盖"无约束回退默认画像""预算+延迟硬约束裁剪""隐私=local 仅留本地模型"等路径。
+- [x] 新建 `fek/constraint/`：`analyzer.py` 实现 `(Task, Constraints) -> ConstraintProfile`，含归一化、可行性校验（约束冲突告警）、模型筛选（按 privacy / preferred_models 过滤候选后端）。
+- [x] 单测 `tests/test_constraint.py`：覆盖"无约束回退默认画像""预算+延迟硬约束裁剪""隐私=local 仅留本地模型"等路径。
 
 ### 6.3 Policy Engine → Policy Optimizer 演进（RFC 0011）
-- [ ] `fek/policy/engine.py`：`select_strategy` 的输入由 `complexity_score` 改为 `ConstraintProfile`；硬约束（budget/latency/privacy）作为不可违反的剪枝条件，软目标（quality）作为优化目标。
-- [ ] 保留可解释 `explain()`，输出新增"约束满足情况"维度。
-- [ ] `PolicyEngine` 类名可保留为别名，对外逐步引导至 `PolicyOptimizer`（向后兼容，不破坏现有 demo）。
+- [x] 新增 `fek/policy/optimizer.py`：`PolicyOptimizer` 输入 `ConstraintProfile`；硬约束（budget/latency/privacy）作为不可违反的剪枝条件，软目标（quality）作为优化目标。`PolicyEngine` 原样保留（向后兼容）。
+- [x] 保留可解释 `explain()`，输出新增"约束满足情况""候选策略成本/延迟/质量""剪枝原因"维度。
+- [x] `PolicyEngine` 类名保留为别名，对外引导至 `PolicyOptimizer`（向后兼容，未破坏现有 demo）。
 
 ### 6.4 新增 Strategy Library 模块（RFC 0012）
-- [ ] 新建 `fek/strategies/`：定义 `Strategy` 协议（`name` / `cost_tier` / `supports(profile)` / `build(task, constraints, models) -> ComputeGraph`）。
-- [ ] 内置 8 个策略（均源自已有论文 / 项目，FEK 适配不重造）：`Single` / `PlannerPlusReviewer` / `Reflection` / `Debate` / `TreeOfThoughts` / `MoA` / `Parallel` / `Hierarchical`。
-- [ ] `MoA` 由"核心叙事"降为 Strategy Library 中一个普通策略；现有 `fek/fusion/` 逻辑下沉为其 `build()` 的实现细节。
-- [ ] 单测 `tests/test_strategies.py`：每个策略 `supports()` 与 `build()` 产出合法 Compute Graph。
+- [x] 新建 `fek/strategies/`：定义 `Strategy` 协议（`name` / `cost_tier` / `supports(profile)` / `build(task, constraints, models) -> ComputeGraph`）。
+- [x] 内置 8 个策略（均源自已有论文 / 项目，FEK 适配不重造）：`Single` / `PlannerPlusReviewer` / `Reflection` / `Debate` / `TreeOfThoughts` / `MoA` / `Parallel` / `Hierarchical`。
+- [x] `MoA` 由"核心叙事"降为 Strategy Library 中一个普通策略；现有 `fek/fusion/` 逻辑下沉为其 `build()` 的实现细节。
+- [x] 单测 `tests/test_strategies.py`：每个策略 `supports()` 与 `build()` 产出合法 Compute Graph。
 
 ### 6.5 接线与文档
-- [ ] `kernel.py`：pipeline 改为 `Task+Constraints → Constraint Analysis → Policy Optimizer → Strategy Library → Compute Graph → Runtime → Telemetry → Learning`。
-- [ ] 更新 `examples/` 增加带约束的调用示例；`web/app.py` 增加约束输入控件。
-- [ ] 更新 `docs/architecture.md` / `docs/terminology.md` 中的代码路径映射表。
+- [x] `kernel.py`：pipeline 改为（有约束时）`Task+Constraints → Constraint Analysis → Policy Optimizer → Strategy Library → Compute Graph → Runtime → Telemetry`（默认无约束管线不变，学习层在其生效）。
+- [x] 更新 `examples/constrained_demo.py` 增加带约束的调用示例；`web/app.py` 增加约束输入控件（默认不启用，向后兼容）。
+- [x] 更新 `docs/architecture.md` / `docs/terminology.md` 中的代码路径映射表。
 
 **执行顺序建议**：6.1（数据模型）→ 6.2（Constraint Analysis）→ 6.3（Policy Optimizer）→ 6.4（Strategy Library）→ 6.5（接线）。
 每步：一个 PR 完成 + 全量 `python -m unittest` 通过 + 更新文档引用。**不破坏零依赖核心**（约束分析/策略库均为纯标准库实现）。

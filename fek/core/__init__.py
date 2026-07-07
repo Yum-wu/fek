@@ -2,6 +2,8 @@
 from .types import (
     Complexity,
     Completion,
+    ConstraintProfile,
+    Constraints,
     ExecutionResult,
     NodeResult,
     Strategy,
@@ -12,6 +14,8 @@ from .graph import ComputeGraph, GraphNode
 __all__ = [
     "Complexity",
     "Completion",
+    "ConstraintProfile",
+    "Constraints",
     "ExecutionResult",
     "NodeResult",
     "Strategy",

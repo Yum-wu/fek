@@ -24,7 +24,10 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import streamlit as st
 
 from fek import FEKKernel, Strategy
+from fek.constraint import analyze
 from fek.core.graph import node_zh_label
+from fek.core.types import Constraints, Task
+from fek.policy.optimizer import PolicyOptimizer
 
 
 @st.cache_resource
@@ -285,12 +288,12 @@ def _show_result_summary(result):
 
 
 def main():
-    st.set_page_config(page_title="FEK —— 自适应 AI 执行引擎", layout="wide")
+    st.set_page_config(page_title="FEK —— 自适应 AI 计算优化器", layout="wide")
     mode = os.getenv("FEK_MODE", "mock")
-    st.title("⚡ FEK —— 自适应 AI 执行引擎")
+    st.title("⚡ FEK —— 自适应 AI 计算优化器")
     st.caption(
-        f"自适应 AI 执行引擎 · 模式：**{mode}** · "
-        "FEK 架构的 v0/v1 黑客松 Demo"
+        f"在质量 / 成本 / 延迟 / 隐私等约束下，自动选择最优的 AI 计算策略 · 模式：**{mode}** · "
+        "FEK v1 内核（约束感知 · 策略无关 · 可学习）"
     )
 
     kernel = get_kernel()
@@ -311,15 +314,46 @@ def main():
             "需考虑延迟、成本与团队结构。",
             height=120,
         )
+
+        # ── 可选约束（新定位：约束作为一等输入）──
+        with st.expander("⚙️ 约束（可选）· 在质量/成本/延迟/隐私下择优", expanded=False):
+            c1, c2 = st.columns(2)
+            with c1:
+                privacy = st.selectbox("隐私", ["none", "no_external", "local_only"], index=0)
+                min_quality = st.slider("最低质量", 0.0, 1.0, 0.0, 0.05)
+            with c2:
+                max_cost = st.number_input("预算上限（美元，0=不限制）", 0.0, 1.0, 0.0, 0.0001)
+                max_latency = st.number_input("延迟上限（毫秒，0=不限制）", 0.0, 10000.0, 0.0, 100.0)
+            use_constraints = st.checkbox("启用约束感知执行", value=False)
+
         if st.button("运行 FEK", type="primary"):
+            constraints = None
+            if use_constraints:
+                constraints = Constraints(
+                    privacy=privacy,
+                    min_quality=min_quality,
+                    max_cost_usd=(max_cost if max_cost > 0 else None),
+                    max_latency_ms=(max_latency if max_latency > 0 else None),
+                )
             with st.spinner("FEK 正在思考…"):
-                result = kernel.run(prompt)
+                result = kernel.run(prompt, constraints=constraints)
             # 用指标行替代原始 summary 字符串
             _show_result_summary(result)
-            st.markdown(f"**策略决策：** {kernel.policy.explain(result.complexity_score)}")
-            with st.expander("学习洞察（Learning Optimizer）"):
-                st.caption("每复杂度档下三臂的平均奖励 / 样本数（学习后策略凭此决策）")
-                st.code(kernel.policy.explain(result.complexity_score, result.complexity))
+            if constraints is not None:
+                # 约束感知路径：展示 Policy Optimizer 的可解释决策
+                prof = analyze(
+                    Task(id=result.task_id, prompt=result.prompt),
+                    constraints,
+                    available_models=getattr(kernel.backend, "models", None),
+                )
+                st.markdown("**约束感知决策（Policy Optimizer）：**")
+                st.code(kernel.optimizer.explain(prof))
+            else:
+                # 默认路径：展示复杂度驱动的策略决策 + 学习洞察
+                st.markdown(f"**策略决策：** {kernel.policy.explain(result.complexity_score)}")
+                with st.expander("学习洞察（Learning Optimizer）"):
+                    st.caption("每复杂度档下三臂的平均奖励 / 样本数（学习后策略凭此决策）")
+                    st.code(kernel.policy.explain(result.complexity_score, result.complexity))
             show_pipeline(result)
             show_graph(result, kernel)
             show_nodes(result)
